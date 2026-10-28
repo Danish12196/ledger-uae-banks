@@ -64,7 +64,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14px;border-top:1px soli
         <a class="btn" style="background:var(--saffron)" href="https://github.com/Danish12196/ledger-uae-banks">⌨ Code on GitHub</a>
         <a class="btn" style="background:var(--lilac)" href="dashboard/">📊 Open the dashboard</a>
         <a class="btn" style="background:var(--mint)" href="#results">See the results</a>
-        <a class="btn" style="background:var(--sky)" href="#prototype">Try the prototype</a>
+        <a class="btn" style="background:var(--sky)" href="try/">🔍 Try it with your data</a>
       </div>
     </div>
     <div id="heroFils" style="justify-self:center"></div>
@@ -116,6 +116,12 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14px;border-top:1px soli
 <section id="prototype"><div class="wrap">
   <div class="eyebrow" style="color:var(--sky)">The spending assistant</div>
   <h2>Questions in, SQL out, numbers from the data</h2>
+  <div class="card" style="margin-bottom:22px;border-color:var(--sky)">
+    <div class="tag" style="color:var(--sky)">Public prototype</div>
+    <h3>Try it with your own bank export</h3>
+    <p>Upload a bank SMS export or a CSV and ask questions about it. The SMS pipeline, the categoriser, the SQL database and the optional Qwen2.5-1.5B model all run inside your browser, so the file never leaves your device. No file handy? Use the synthetic sample household.</p>
+    <div class="btns" style="margin-top:14px"><a class="btn" style="background:var(--sky)" href="try/">Open the prototype →</a></div>
+  </div>
   <div class="two">
     <div>
       <p><b>"How much did I spend on food and dining in May 2025?"</b></p>
@@ -164,6 +170,8 @@ WHERE user='U12'
     <tr><td><span class="mono">sms_transactions_pipeline.ipynb</span></td><td>Parsing five bank templates, cleaning, privacy tests</td></tr>
     <tr><td><span class="mono">expense_categoriser_train_test.ipynb</span></td><td>Five test set-ups, calibration, confidence cascade</td></tr>
     <tr><td><span class="mono">spending_assistant.ipynb</span></td><td>Text-to-SQL assistant with guard rails, error propagation</td></tr>
+    <tr><td><span class="mono">export_web_model.ipynb</span></td><td>Privacy-pruned, calibrated export of the categoriser for the browser</td></tr>
+    <tr><td><a href="try/">Try it with your data</a></td><td>Public prototype: the same pipeline and categoriser, running in the browser on your own export</td></tr>
     <tr><td><a href="dashboard/">Dashboard</a></td><td>All results: five test set-ups, calibration, error propagation and the 30-question text-to-SQL run</td></tr>
   </table>
   <p class="note">Runs in Google Colab. Code: <a href="https://github.com/Danish12196/ledger-uae-banks">github.com/Danish12196/ledger-uae-banks</a>. The SMS data stays private and is available to markers on request.</p>

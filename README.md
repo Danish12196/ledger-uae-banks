@@ -32,8 +32,19 @@ spending_assistant.ipynb               text-to-SQL assistant with guard rails, e
 scripts/rules.py                       12-category definitions, brand and keyword rules
 scripts/categoriser_lib.py             shared loading and model code
 scripts/censor.py                      masking used on the raw SMS exports before any analysis
+export_web_model.ipynb                 privacy-pruned, calibrated export of the categoriser for the browser
 site/                                  static site deployed to ledger.danishali.dev (Vercel root directory)
+site/try/                              public prototype: the SMS pipeline + categoriser ported to JavaScript
 ```
+
+## Public prototype (`site/try/`, ledger.danishali.dev/try/)
+
+Visitors upload their own bank SMS export (Excel/CSV with Date and Message columns, or an SMS Backup & Restore .xml) or any transaction CSV. Everything runs in the browser; nothing is uploaded, and the page's Content-Security-Policy only allows it to download code and model files.
+
+- `ledger-rules.js` is **generated** from `sms_transactions_pipeline.ipynb` (parser, merchant cleaning, brand table) and `scripts/rules.py` (keyword rules, category descriptions), so the browser uses the same patterns as the notebooks.
+- `sms.js` ports `parse_message`, `split_merchant`, `clean_name`, the expense flags, `make_text`, the TF-IDF + logistic-regression model with sigmoid calibration, and the confidence cascade. On 2,426 test messages and 5,163 merchant strings the browser output is identical to the notebooks; model scores match scikit-learn to within 1e-5.
+- `ledger_web_model.json` comes from `export_web_model.ipynb`: a character or word n-gram is kept only if it occurs in at least two people's expenses, the merchant lookup table is not exported (tier 1 becomes the visitor's own corrections), and calibration uses one model fitted on grouped out-of-fold scores (`CalibratedClassifierCV(ensemble=False)`), with the review threshold re-chosen by the same 90% rule (0.60). Pruning left unseen-merchant macro-F1 unchanged (47.9% vs 47.3%, pooled folds) and cost about a point on Khalifa (58.1% vs 59.4%).
+- The text-to-SQL step uses the `spending_assistant.ipynb` prompt and runs Qwen2.5-1.5B-Instruct in the browser through WebLLM (WebGPU); the browser runs the SQL under the same read-only guard.
 
 ## Running the notebooks
 
