@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledger</title>
+<meta name="description" content="MAAI902 NLP solution design: categorising UAE bank SMS expenses and answering spending questions with a guarded local LLM.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23FFB238'/><text x='50' y='66' font-size='46' text-anchor='middle' font-family='Arial' font-weight='700' fill='%2310172A'>L</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#10172A;--bg2:#1A2340;--paper:#FBF6EA;--ink:#1B2333;--text:#F7EEDB;--muted:#B9C0D4;--muted-ink:#5A6275;
+--saffron:#FFB238;--pom:#FF6B57;--mint:#7BD389;--sky:#62C6EE;--lilac:#B9A3FF;--line:rgba(255,255,255,.1)}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#FBF6EA;--bg2:#FFFFFF;--text:#1B2333;--muted:#5A6275;--line:#EADFC6}}
+:root[data-theme="light"]{--bg:#FBF6EA;--bg2:#FFFFFF;--text:#1B2333;--muted:#5A6275;--line:#EADFC6}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:18px/1.6 Nunito,system-ui,sans-serif}
+a{color:var(--saffron)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:Fredoka,Nunito,system-ui,sans-serif;line-height:1.1}
+h1{font-size:clamp(44px,8vw,84px);font-weight:700}
+h2{font-size:clamp(30px,5vw,44px);margin-bottom:18px}
+h3{font-size:22px;margin-bottom:6px}
+.eyebrow{font-size:14px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--saffron);margin-bottom:10px}
+header{padding:64px 0 40px;position:relative;overflow:hidden}
+.hero{display:grid;grid-template-columns:1.4fr .8fr;gap:24px;align-items:center}
+.lede{font-size:clamp(18px,2.4vw,22px);color:var(--muted);margin-top:18px;max-width:640px}
+.btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.btn{display:inline-block;font-family:Fredoka,Nunito,sans-serif;font-weight:600;font-size:18px;padding:12px 22px;border-radius:999px;text-decoration:none;color:#1B2333;box-shadow:0 5px 0 rgba(0,0,0,.2)}
+section{padding:48px 0;border-top:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:18px}
+.stat b{display:block;font-family:Fredoka,Nunito,sans-serif;font-size:clamp(28px,4.5vw,40px);line-height:1.1}
+.stat span{color:var(--muted);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:10px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:20px}
+.card p{color:var(--muted);font-size:16px}
+.tag{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.frame{background:#FBF6EA;padding:8px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);margin:16px 0}
+.frame img{display:block;width:100%;height:auto;border-radius:8px}
+.bars{display:grid;grid-template-columns:minmax(120px,210px) 1fr;gap:10px 14px;align-items:center;margin-top:10px}
+.bar{height:34px;border-radius:9px;color:#1B2333;font-family:Fredoka,Nunito,sans-serif;font-weight:600;display:flex;align-items:center;padding-left:10px;font-size:16px}
+.note{color:var(--muted);font-size:15px;margin-top:12px}
+code,.mono{font-family:'JetBrains Mono',monospace;font-size:.9em}
+pre{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;font-size:14px;color:var(--mint)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+table{width:100%;border-collapse:collapse;font-size:16px}
+td,th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+th{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+footer{padding:36px 0 60px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+.theme{position:absolute;top:18px;right:20px;background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:6px 12px;font:14px Nunito;cursor:pointer}
+@media (max-width:760px){.hero,.two{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}#heroFils svg{width:200px;height:200px}}
+</style>
+</head>
+<body>
+<header>
+  <button class="theme" id="themeBtn" aria-label="Toggle light or dark theme">◐ theme</button>
+  <div class="wrap hero">
+    <div>
+      <div class="eyebrow">MAAI902 · NLP &amp; LLMs · Solution design</div>
+      <h1>Ledger</h1>
+      <p class="lede">A system that reads UAE bank SMS alerts, works out what each purchase was for, knows when it isn't sure, and answers questions like <i>"how much did I spend on food in May?"</i> with numbers you can trace.</p>
+      <div class="btns">
+        <a class="btn" style="background:var(--saffron)" href="https://github.com/Danish12196/ledger-uae-banks">⌨ Code on GitHub</a>
+        <a class="btn" style="background:var(--lilac)" href="dashboard/">📊 Open the dashboard</a>
+        <a class="btn" style="background:var(--mint)" href="#results">See the results</a>
+        <a class="btn" style="background:var(--sky)" href="#prototype">Try the prototype</a>
+      </div>
+    </div>
+    <div id="heroFils" style="justify-self:center"></div>
+  </div>
+</header>
+
+<main>
+<section><div class="wrap">
+  <div class="eyebrow" style="color:var(--sky)">The data</div>
+  <h2>Real messages, five banks</h2>
+  <div class="stats">
+    <div class="stat"><b style="color:var(--saffron)">19,641</b><span>bank SMS</span></div>
+    <div class="stat"><b style="color:var(--pom)">11,368</b><span>usable expenses</span></div>
+    <div class="stat"><b style="color:var(--mint)">1,930</b><span>distinct merchants</span></div>
+    <div class="stat"><b style="color:var(--sky)">94%</b><span>human audit agreement (κ 0.93)</span></div>
+  </div>
+  <p class="note">Five people's SMS (ADCB, Liv, Mashreq, FAB; 2022–2025) for training and testing, plus Khalifa University's public ADIB dataset as an outside test the model never trains on. Names, card numbers, IBANs, OTPs and references were masked before any analysis. No raw data is published here; the dashboard shows results only, never anyone's transactions.</p>
+</div></section>
+
+<section><div class="wrap">
+  <div class="eyebrow" style="color:var(--pom)">How it works</div>
+  <h2>Categorise, then answer</h2>
+  <div class="frame"><img src="img/arch.svg" alt="Architecture diagram. Stage 1: SMS are parsed, cleaned and passed through a four-tier cascade (lookup, rules, calibrated model, proposed LLM tier) with a user-review fallback, into a SQLite table. Stage 2: a question is turned into one SQL query by a local LLM, checked by a read-only guard, and answered from the table." loading="lazy"></div>
+  <div class="cards">
+    <div class="card"><div class="tag" style="color:var(--mint)">Tier 1</div><h3>Lookup</h3><p>Known merchants reuse their label, including your own corrections.</p></div>
+    <div class="card"><div class="tag" style="color:var(--sky)">Tier 2</div><h3>Rules</h3><p>Brand and keyword rules for the obvious ones: ADNOC, DEWA, "…PHARMACY".</p></div>
+    <div class="card"><div class="tag" style="color:var(--saffron)">Tier 3</div><h3>Calibrated model</h3><p>Character n-gram TF-IDF with logistic regression, calibrated on merchants it has never seen.</p></div>
+    <div class="card"><div class="tag" style="color:var(--pom)">Fallback</div><h3>Ask once</h3><p>Low confidence? Best guess plus a review flag. Your answer is remembered.</p></div>
+  </div>
+</div></section>
+
+<section id="results"><div class="wrap">
+  <div class="eyebrow" style="color:var(--mint)">Results · macro-F1</div>
+  <h2>The honest number is the low one</h2>
+  <div class="bars" role="img" aria-label="Macro-F1 by test set-up: random 94.9%, future 89.2%, unseen person 80.3%, another bank 59.4%, brand-new merchants 51.2%">
+    <span>Random 5-fold</span><div class="bar" style="width:94.9%;background:var(--mint)">94.9%</div>
+    <span>Future (2025)</span><div class="bar" style="width:89.2%;background:var(--mint)">89.2%</div>
+    <span>Unseen person</span><div class="bar" style="width:80.3%;background:var(--saffron)">80.3%</div>
+    <span>Another bank</span><div class="bar" style="width:59.4%;background:var(--saffron)">59.4%</div>
+    <span><b>Brand-new merchants</b></span><div class="bar" style="width:51.2%;background:var(--pom)">51.2%</div>
+  </div>
+  <p class="note">Random splits reuse the same merchants in training and testing, which is why they look so good. An exact-lookup baseline scores 4.1% on brand-new merchants; the model keeps 51.2%. Brand knowledge (an LLM or fine-tuned encoder) is the next tier.</p>
+  <div class="two" style="margin-top:26px">
+    <div class="card"><div class="tag" style="color:var(--saffron)">Confidence you can trust</div><h3>0.7–0.8 → right 95% of the time</h3><p>Calibrated on unseen merchants. At a 0.60 threshold, 31% of brand-new-merchant purchases are filed automatically at 91% accuracy; the rest are asked about.</p></div>
+    <div class="card"><div class="tag" style="color:var(--pom)">Error analysis</div><h3>The McDonald's-at-ADNOC bug</h3><p>132 restaurant purchases at petrol stations had been labelled as fuel. Fixing them lowered the new-merchant score from 53.3% to 51.2%, and the lower number is the honest one.</p></div>
+  </div>
+</div></section>
+
+<section id="prototype"><div class="wrap">
+  <div class="eyebrow" style="color:var(--sky)">The spending assistant</div>
+  <h2>Questions in, SQL out, numbers from the data</h2>
+  <div class="two">
+    <div>
+      <p><b>"How much did I spend on food and dining in May 2025?"</b></p>
+      <pre>SELECT ROUND(SUM(amount_aed),2)
+FROM expenses
+WHERE user='U12'
+  AND category='Food_Dining'
+  AND month='2025-05'</pre>
+      <p class="note">→ <b style="color:var(--mint)">692.20 AED</b>, read from the database, with the SQL shown.</p>
+    </div>
+    <div class="card">
+      <h3>Guard rails</h3>
+      <p>A small local LLM (Qwen2.5-1.5B-Instruct) only writes one query. A guard accepts a single read-only <span class="mono">SELECT</span>, blocks DROP / UPDATE / PRAGMA and runs on a read-only copy with a time limit. The LLM never types a number, and messages never leave the device.</p>
+    </div>
+  </div>
+  <div class="stats" style="margin-top:26px">
+    <div class="stat"><b style="color:var(--mint)">67%</b><span>correct SQL on 30 gold questions</span></div>
+    <div class="stat"><b style="color:var(--saffron)">75%</b><span>on category questions</span></div>
+    <div class="stat"><b style="color:var(--pom)">50%</b><span>on controls (mostly bank vs merchant mix-ups)</span></div>
+    <div class="stat"><b style="color:var(--sky)">0</b><span>queries the guard had to reject</span></div>
+  </div>
+  <h3 style="margin-top:30px">Do categorisation errors change the answers?</h3>
+  <table>
+    <tr><th>30 gold questions</th><th>Known merchants</th><th>Brand-new merchants</th></tr>
+    <tr><td>Questions without categories ("How much at Amazon?")</td><td>100%</td><td>100%</td></tr>
+    <tr><td>Category questions ("food in May?")</td><td>55% (median error 5%)</td><td>5% (median error 89%)</td></tr>
+  </table>
+  <p class="note">One large misfiled purchase can swing a whole year's total, which is why the system asks about uncertain purchases instead of guessing quietly. All 30 questions and the LLM error types are on the <a href="dashboard/">dashboard</a>.</p>
+</div></section>
+
+<section><div class="wrap">
+  <div class="eyebrow" style="color:var(--lilac)">Responsible by design</div>
+  <h2>Your money, your phone, your call</h2>
+  <div class="cards">
+    <div class="card"><h3 style="color:var(--mint)">Privacy</h3><p>Masked before analysis, local LLM, code-only repository. Designed around the UAE PDPL.</p></div>
+    <div class="card"><h3 style="color:var(--sky)">Consent</h3><p>Contributors asked; their data shared with markers only on request; public dataset cited.</p></div>
+    <div class="card"><h3 style="color:var(--saffron)">No invented numbers</h3><p>The LLM only writes guarded SQL, and the query is shown with every answer. Advice answers showed why: next, they go through fixed analysis tools.</p></div>
+    <div class="card"><h3 style="color:var(--pom)">Over-trust</h3><p>Confidence shown, review flag, and advice clearly marked as not financial advice.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="eyebrow">Materials</div>
+  <h2>Notebooks and code</h2>
+  <table>
+    <tr><td><span class="mono">sms_transactions_pipeline.ipynb</span></td><td>Parsing five bank templates, cleaning, privacy tests</td></tr>
+    <tr><td><span class="mono">expense_categoriser_train_test.ipynb</span></td><td>Five test set-ups, calibration, confidence cascade</td></tr>
+    <tr><td><span class="mono">spending_assistant.ipynb</span></td><td>Text-to-SQL assistant with guard rails, error propagation</td></tr>
+    <tr><td><a href="dashboard/">Dashboard</a></td><td>All results: five test set-ups, calibration, error propagation and the 30-question text-to-SQL run</td></tr>
+  </table>
+  <p class="note">Runs in Google Colab. Code: <a href="https://github.com/Danish12196/ledger-uae-banks">github.com/Danish12196/ledger-uae-banks</a>. The SMS data stays private and is available to markers on request.</p>
+</div></section>
+</main>
+
+<footer><div class="wrap">Danish Ali · 5584978 · Master of Applied AI, University of Wollongong in Dubai · MAAI902, Dr. Pallavi Ranjan · Autumn 2026. Mascot Fils is an original drawing.</div></footer>
+
+<script src="fils.js"></script>
+<script>
+document.getElementById('heroFils').innerHTML = fils({size:300, mood:'wave'});
+const btn = document.getElementById('themeBtn');
+try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+btn.addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const next = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch (e) {}
+});
+</script>
+</body>
+</html>

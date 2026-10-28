@@ -1,0 +1,16 @@
+# Data never goes in this repo (volunteer SMS and the Khalifa dataset)
+data/
+outputs/
+models/
+private/
+*.xlsx
+*.xls
+*.csv
+*.pkl
+*.joblib
+site/dashboard/data.bin
+site/dashboard/*.json
+# Python / notebooks
+__pycache__/
+.ipynb_checkpoints/
+.vercel

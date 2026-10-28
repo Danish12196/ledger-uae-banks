@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledger Dashboard</title>
+<meta name="description" content="Ledger dashboard: model results for every test set-up, plus password-protected per-user spending views, live SQL and the spending-assistant replay.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23FFB238'/><text x='50' y='66' font-size='46' text-anchor='middle' font-family='Arial' font-weight='700' fill='%2310172A'>L</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#10172A;--bg2:#1A2340;--bg3:#232E52;--text:#F7EEDB;--muted:#B9C0D4;--line:rgba(255,255,255,.12);
+--saffron:#FFB238;--pom:#FF6B57;--mint:#7BD389;--sky:#62C6EE;--lilac:#B9A3FF;--ok:#7BD389;--bad:#FF6B57}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#FBF6EA;--bg2:#FFFFFF;--bg3:#F3EBD8;--text:#1B2333;--muted:#5A6275;--line:#EADFC6;--ok:#1E8449;--bad:#C0392B}}
+:root[data-theme="light"]{--bg:#FBF6EA;--bg2:#FFFFFF;--bg3:#F3EBD8;--text:#1B2333;--muted:#5A6275;--line:#EADFC6;--ok:#1E8449;--bad:#C0392B}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:16px/1.55 Nunito,system-ui,sans-serif}
+a{color:var(--saffron)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+h1,h2,h3{font-family:Fredoka,Nunito,system-ui,sans-serif;line-height:1.15}
+h1{font-size:clamp(32px,6vw,52px)}
+h2{font-size:clamp(22px,3.6vw,30px);margin-bottom:12px}
+h3{font-size:18px;margin-bottom:6px}
+.eyebrow{font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--saffron);margin-bottom:6px}
+header{padding:28px 0 18px;border-bottom:1px solid var(--line)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.lede{color:var(--muted);max-width:760px;margin-top:8px}
+.pill{background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:6px 14px;font:14px Nunito;cursor:pointer;text-decoration:none;display:inline-block}
+.tabs{display:flex;gap:8px;margin:18px 0 0;flex-wrap:wrap}
+.tab{font-family:Fredoka,Nunito,sans-serif;font-weight:600;font-size:17px;padding:9px 18px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);color:var(--text);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--saffron);color:#1B2333;border-color:var(--saffron)}
+section{padding:26px 0;border-bottom:1px solid var(--line)}
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0;overflow-x:auto}
+.stat b{display:block;font-family:Fredoka,Nunito,sans-serif;font-size:clamp(24px,3.6vw,34px);line-height:1.1}
+.stat span{color:var(--muted);font-size:14px}
+.note{color:var(--muted);font-size:14px;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+th{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:800}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto}
+.mono,code,pre,textarea{font-family:'JetBrains Mono',monospace;font-size:13px}
+pre{background:var(--bg3);border-radius:10px;padding:10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ok{color:var(--ok);font-weight:800}.bad{color:var(--bad);font-weight:800}
+.bars{display:grid;grid-template-columns:minmax(110px,200px) 1fr;gap:8px 12px;align-items:center}
+.barrow{display:flex;gap:4px;flex-direction:column}
+.bar{height:22px;border-radius:7px;color:#1B2333;font-family:Fredoka,Nunito,sans-serif;font-weight:600;font-size:13px;display:flex;align-items:center;padding-left:8px;white-space:nowrap}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+label.f{display:flex;flex-direction:column;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);gap:4px}
+select{max-width:100%}
+label.f{min-width:0;max-width:100%}
+details summary{cursor:pointer;font-family:Fredoka,Nunito,sans-serif;font-weight:600;font-size:17px;margin:8px 0}
+select,input,textarea{background:var(--bg2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:15px Nunito}
+textarea{width:100%;min-height:92px;font-size:13px}
+button.go{font-family:Fredoka,Nunito,sans-serif;font-weight:600;font-size:16px;padding:9px 18px;border-radius:999px;border:0;background:var(--mint);color:#1B2333;cursor:pointer}
+.lock{max-width:460px;margin:30px auto;text-align:center}
+.lock input{width:100%;margin:12px 0}
+.chart{position:relative;height:320px}
+.chart.sm{height:240px}
+.badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:1px;padding:2px 8px;border-radius:999px;background:var(--bg3);color:var(--muted);text-transform:uppercase}
+.hidden{display:none!important}
+.q{border-top:1px solid var(--line);padding:10px 0}
+.q:first-child{border-top:0}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+footer{padding:26px 0 50px;color:var(--muted);font-size:13px}
+@media (max-width:820px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3,.g2,.cols2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow">Ledger · prototype dashboard</div>
+      <h1>Dashboard</h1>
+      <p class="lede">The model results for every test set-up are public. The per-user spending views, the live SQL box and the spending-assistant replay are locked, and decrypt in your browser only with the password.</p>
+    </div>
+    <div style="display:flex;gap:8px"><a class="pill" href="../">← Ledger home</a><button class="pill" id="themeBtn" aria-label="Toggle light or dark theme">◐ theme</button></div>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="overall">Overall results</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="users">🔒 By user</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+<!-- ===================== OVERALL (public) ===================== -->
+<div id="tab-overall">
+<section>
+  <div class="grid g4">
+    <div class="card stat"><b style="color:var(--saffron)">11,368</b><span>usable expenses</span></div>
+    <div class="card stat"><b style="color:var(--pom)">12</b><span>card-holders (5 volunteers + 7 public)</span></div>
+    <div class="card stat"><b style="color:var(--mint)">5</b><span>banks · 12 categories</span></div>
+    <div class="card stat"><b style="color:var(--sky)">94%</b><span>blind label audit (κ 0.93)</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow" style="color:var(--mint)">Categorisation · macro-F1</div>
+  <h2>Five test set-ups, from easiest to hardest</h2>
+  <div class="legend"><span><i style="background:#9aa3b5"></i>Majority class</span><span><i style="background:var(--sky)"></i>Merchant lookup</span><span><i style="background:var(--mint)"></i>TF-IDF + logistic regression</span></div>
+  <div class="bars" id="f1bars"></div>
+  <p class="note">Random splits reuse the same merchants in training and test. On brand-new merchants an exact lookup collapses to 4.1%, while character n-grams keep 51.2%. Run: <span class="mono">expense_categoriser_train_test.ipynb</span>, 27 Oct 2026.</p>
+  <div class="scroll" style="margin-top:14px"><table id="f1table"></table></div>
+</section>
+
+<section>
+  <div class="grid g2">
+    <div class="card">
+      <div class="eyebrow" style="color:var(--saffron)">Calibration · unseen merchants</div>
+      <h3>Is the confidence honest?</h3>
+      <div class="chart sm"><canvas id="relChart" aria-label="Reliability chart: predicted confidence against actual accuracy"></canvas></div>
+      <p class="note">Points above the diagonal mean the model is cautious. 0.7–0.8 confidence was right 95% of the time.</p>
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="color:var(--pom)">Review threshold</div>
+      <h3>Auto-file or ask?</h3>
+      <div class="scroll"><table id="thrTable"></table></div>
+      <p class="note">The chosen threshold (0.60) is the lowest at which auto-filed brand-new-merchant purchases are at least 90% correct.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow" style="color:var(--sky)">Spending assistant</div>
+  <h2>From categories to answers</h2>
+  <div class="grid g3">
+    <div class="card stat"><b style="color:var(--mint)">67%</b><span>text-to-SQL execution accuracy (20 of 30), Qwen2.5-1.5B on a Colab T4</span></div>
+    <div class="card stat"><b style="color:var(--saffron)">75% / 50%</b><span>category questions / control questions</span></div>
+    <div class="card stat"><b style="color:var(--sky)">0</b><span>queries rejected by the guard (1 failed to run: MySQL <span class="mono">YEAR()</span>)</span></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h3>Error propagation</h3>
+      <p class="note" style="margin-top:0">The same 30 gold queries, run on true categories and on out-of-fold predicted ones.</p>
+      <div class="scroll"><table>
+        <tr><th>Question type</th><th class="num">Known merchants</th><th class="num">Brand-new merchants</th></tr>
+        <tr><td>Control: no category (10)</td><td class="num">100%</td><td class="num">100%</td></tr>
+        <tr><td>Category questions (20)</td><td class="num">55% <span class="note">(median error 5%)</span></td><td class="num">5% <span class="note">(median error 89%)</span></td></tr>
+      </table></div>
+    </div>
+    <div class="card">
+      <h3>Where the LLM went wrong</h3>
+      <table id="errTypes"></table>
+    </div>
+  </div>
+  <h3 style="margin-top:20px">All 30 questions</h3>
+  <p class="note" style="margin-top:0">✓ / ✗ = the LLM's SQL returned the gold answer. Answers and amounts are in the locked tab.</p>
+  <div class="scroll"><table id="qPublic"></table></div>
+</section>
+
+<section>
+  <div class="eyebrow" style="color:var(--lilac)">Advice answers</div>
+  <h2>Why advice goes through tools next</h2>
+  <div class="grid g3">
+    <div class="card"><h3>"How can I save 1,000 AED a month?"</h3><p class="note">Three cuts that add up to about 295 AED, then "these adjustments should help you reach your goal".</p></div>
+    <div class="card"><h3>"Give me 5 best places to cut"</h3><p class="note">Three places, priced in dollars ($484, $1230, $176) when the data is in AED.</p></div>
+    <div class="card"><h3>"Where can I save next month?"</h3><p class="note">Describes government fees as "parking fines or utility bills", which belong to other categories.</p></div>
+  </div>
+  <p class="note">Every number the model was given was real; its arithmetic and reasoning were not. The locked tab shows the proposed fix running: fixed analysis tools compute every figure, and the text only ranks and phrases them.</p>
+</section>
+</div>
+
+<!-- ===================== BY USER (locked) ===================== -->
+<div id="tab-users" class="hidden">
+<div id="lockBox" class="lock card">
+  <div class="eyebrow">Locked</div>
+  <h2>Per-user spending</h2>
+  <p class="note">Pseudonymous card-holders (U01–U12, volunteers and public-dataset users mixed). The data is encrypted (AES-GCM) and only decrypts in this browser.</p>
+  <form id="lockForm"><input type="password" id="pw" placeholder="Password" autocomplete="current-password" aria-label="Password"><button class="go" type="submit">Unlock</button></form>
+  <p class="note" id="lockMsg"></p>
+</div>
+
+<div id="userApp" class="hidden">
+<section>
+  <div class="controls">
+    <label class="f">Card-holder<select id="selUser"></select></label>
+    <label class="f">Year<select id="selYear"></select></label>
+    <label class="f">Categories from<select id="selSrc">
+      <option value="true">True labels</option>
+      <option value="known">Model: known merchants</option>
+      <option value="unseen">Model: brand-new merchants</option>
+    </select></label>
+  </div>
+  <p class="note" id="srcNote"></p>
+</section>
+<section>
+  <div class="grid g4" id="kpis"></div>
+</section>
+<section>
+  <div class="grid g2">
+    <div class="card"><h3>Spending by month and category</h3><div class="chart"><canvas id="monthChart"></canvas></div></div>
+    <div class="card"><h3>Total by category</h3><div class="chart"><canvas id="catChart"></canvas></div></div>
+  </div>
+</section>
+<section>
+  <div class="grid g2">
+    <div class="card"><h3>Top merchants</h3><div class="controls" style="margin-bottom:8px"><label class="f">Category<select id="selMerchCat"></select></label></div><div class="scroll"><table id="merchTable"></table></div></div>
+    <div class="card">
+      <h3>Where could I cut? <span class="badge">tool-based</span></h3>
+      <p class="note" style="margin-top:0" id="saveIntro"></p>
+      <div id="saveOut"></div>
+    </div>
+  </div>
+</section>
+<section>
+  <div class="eyebrow" style="color:var(--sky)">Ask with SQL</div>
+  <h2>Query this card-holder's expenses</h2>
+  <p class="note" style="margin-top:0">The same guard as the notebook: one <span class="mono">SELECT</span>/<span class="mono">WITH</span> only, data-changing keywords blocked, and the database is set to query-only. Table: <span class="mono">expenses(txn_id, user, bank, date, month, year, merchant, amount_aed, category)</span>. The live LLM runs in Colab; here you write or pick the SQL.</p>
+  <div class="controls" style="margin:10px 0"><label class="f" style="flex:1;min-width:240px">Example<select id="selPreset"></select></label></div>
+  <textarea id="sqlBox" spellcheck="false" aria-label="SQL query"></textarea>
+  <div style="margin-top:8px"><button class="go" id="runSql">Run query</button></div>
+  <div id="sqlOut" style="margin-top:10px"></div>
+</section>
+<section id="replaySec">
+  <div class="eyebrow" style="color:var(--saffron)">Assistant replay</div>
+  <h2>The evaluated run, question by question</h2>
+  <p class="note" style="margin-top:0" id="replayNote"></p>
+  <details><summary>Show all 30 questions with gold and LLM SQL</summary><div id="replay"></div></details>
+  <details><summary>Advice answers from the LLM (unchanged)</summary><div id="advice"></div></details>
+</section>
+</div>
+</div>
+</main>
+
+<footer><div class="wrap">Ledger · Danish Ali · MAAI902 Assessment 2 · University of Wollongong in Dubai · Autumn 2026. Spending figures are from censored, pseudonymised data; not financial advice.</div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-wasm.js"></script>
+<script>
+// ---------- theme ----------
+const root=document.documentElement;
+try{const t=localStorage.getItem('theme');if(t)root.dataset.theme=t;}catch(e){}
+document.getElementById('themeBtn').onclick=()=>{const cur=root.dataset.theme||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');const n=cur==='light'?'dark':'light';root.dataset.theme=n;try{localStorage.setItem('theme',n)}catch(e){};redrawCharts();};
+const css=v=>getComputedStyle(root).getPropertyValue(v).trim();
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.getElementById('tab-overall').classList.toggle('hidden',b.dataset.tab!=='overall');
+  document.getElementById('tab-users').classList.toggle('hidden',b.dataset.tab!=='users');
+  if(b.dataset.tab==='users'&&DATA) redrawCharts();
+});
+
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const aed=v=>v==null?'–':Number(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+const aed2=v=>v==null?'–':Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+// ---------- public results ----------
+const F1=[ // setup, majority, lookup, lr, accuracy
+ ['Random 5-fold',3.3,90.0,94.9,97.7],['Future (2025)',3.3,79.6,89.2,93.6],['Unseen person (avg of 5)',3.0,60.6,80.3,89.2],
+ ['External bank (Khalifa, ADIB)',4.8,19.1,59.4,71.3],['Brand-new merchants',2.6,4.1,51.2,55.5]];
+document.getElementById('f1bars').innerHTML=F1.map(r=>`<span>${r[0]==='Brand-new merchants'?'<b>'+r[0]+'</b>':r[0]}</span><div class="barrow">
+ <div class="bar" style="width:${Math.max(r[1],3)}%;background:#9aa3b5">${r[1]}%</div>
+ <div class="bar" style="width:${Math.max(r[2],3)}%;background:var(--sky)">${r[2]}%</div>
+ <div class="bar" style="width:${r[3]}%;background:var(--mint)">${r[3]}%</div></div>`).join('');
+document.getElementById('f1table').innerHTML='<tr><th>Test set-up</th><th class="num">LR accuracy</th><th class="num">LR macro-F1</th><th class="num">Lookup macro-F1</th></tr>'+
+ F1.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[4]}%</td><td class="num"><b>${r[3]}%</b></td><td class="num">${r[2]}%</td></tr>`).join('')+
+ '<tr><td colspan="4" class="note">Unseen person: 78.9% · 79.5% · 81.6% · 86.3% · 75.4% for the five volunteers (the business-like spender is lowest).</td></tr>';
+const THR=[[0.30,88,61],[0.40,67,64],[0.50,45,83],[0.55,38,88],[0.60,31,91],[0.65,23,94],[0.70,18,96],[0.75,12,98],[0.80,3,99]];
+document.getElementById('thrTable').innerHTML='<tr><th class="num">Threshold</th><th class="num">Auto-filed</th><th class="num">Accuracy on auto-filed</th></tr>'+
+ THR.map(r=>`<tr${r[0]===0.6?' style="background:var(--bg3)"':''}><td class="num">${r[0].toFixed(2)}${r[0]===0.6?' ★':''}</td><td class="num">${r[1]}%</td><td class="num">${r[2]}%</td></tr>`).join('');
+const ERR=[['Filtered bank instead of merchant','4','Q21, Q22, Q23, Q29'],['Dropped the category filter','2','Q6, Q12'],['Averaged per purchase, not per month','1','Q14'],['Added two years instead of comparing','1','Q26'],['Comparison without month labels','1','Q9'],['Used MySQL YEAR() (query failed)','1','Q20']];
+document.getElementById('errTypes').innerHTML='<tr><th>Error</th><th class="num">n</th><th>Questions</th></tr>'+ERR.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="mono">${r[2]}</td></tr>`).join('');
+const QPUB=[["How much did I spend on food and dining in May 2025?",1,1],["How much did I spend on groceries in 2025?",1,1],["What did I spend on transport in July 2025?",1,1],["How much went on digital subscriptions in 2025?",1,1],["How much did I spend on entertainment in 2024?",1,1],["What was my total shopping spend from July to December 2025?",1,0],["How much did I spend on health and wellness in 2025?",1,1],["How much were my utility and telecom bills in 2025?",1,1],["Compare my food and dining spending in October and December 2025.",1,0],["Which category did I spend the most on in 2025?",1,1],["What were my top 3 spending categories in 2024?",1,1],["Which month in 2025 had my highest transport spending?",1,0],["What percentage of my 2025 spending went on food and dining?",1,1],["What was my average monthly grocery spend in 2025?",1,0],["How many food and dining purchases did I make this month?",1,1],["How much did I spend on travel in 2025?",1,1],["How much did I pay in government fees in 2025?",1,1],["What was my biggest single entertainment purchase in 2025?",1,1],["How much did I spend on entertainment last month?",1,1],["How much did I spend on transport in 2024 compared with 2025?",1,0],["How much did I spend at Amazon in 2025?",0,0],["How many times did I pay Snapchat in 2025?",0,0],["How much did I spend at McDonald's in 2025?",0,0],["How much did I spend in total this month?",0,1],["How much did I spend in total last month?",0,1],["Compare my total spending in 2024 and 2025.",0,0],["Which merchant did I spend the most at in 2025?",0,1],["What was my average purchase amount in 2025?",0,1],["How much did I spend on Bolt rides in 2025?",0,0],["Which month in 2025 did I spend the most overall?",0,1]];
+document.getElementById('qPublic').innerHTML='<tr><th class="num">#</th><th>Question</th><th>Type</th><th>LLM</th></tr>'+
+ QPUB.map((q,i)=>`<tr><td class="num">Q${i+1}</td><td>${esc(q[0])}</td><td>${q[1]?'category':'<span class="note">control</span>'}</td><td>${q[2]?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</td></tr>`).join('');
+
+let relChart;
+function drawRel(){
+  if(relChart) relChart.destroy();
+  const g=css('--line'),t=css('--muted');
+  relChart=new Chart(document.getElementById('relChart'),{type:'line',data:{datasets:[
+    {label:'perfect calibration',data:[{x:0,y:0},{x:1,y:1}],borderColor:t,borderDash:[5,4],pointRadius:0,borderWidth:1},
+    {label:'calibrated model',data:[[.26,.24],[.35,.50],[.45,.25],[.55,.65],[.64,.83],[.75,.95],[.82,.99]].map(([x,y])=>({x,y})),borderColor:css('--saffron'),backgroundColor:css('--saffron'),pointRadius:4}]},
+    options:{maintainAspectRatio:false,parsing:false,scales:{x:{type:'linear',min:0,max:1,title:{display:true,text:'Predicted confidence',color:t},ticks:{color:t},grid:{color:g}},y:{min:0,max:1,title:{display:true,text:'Actual accuracy',color:t},ticks:{color:t},grid:{color:g}}},plugins:{legend:{labels:{color:t}}}}});
+}
+
+// ---------- locked data ----------
+const META={"salt":"HUPIpgl4flPgMf/KxpIUfQ==","iv":"3zusfYdqTHcF9Eoj","iter":250000};
+let DATA=null, SQL=null, db=null, charts={};
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function unlock(pw){
+  const res=await fetch(window.LEDGER_DATA_URL||'data.bin',{cache:'no-store'});if(!res.ok)throw Object.assign(Error('nodata'),{nodata:true});const buf=window.LEDGER_B64?b64(await res.text()).buffer:await res.arrayBuffer();
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(META.salt),iterations:META.iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(META.iv)},key,buf);
+  const stream=new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+}
+document.getElementById('lockForm').onsubmit=async e=>{
+  e.preventDefault();const msg=document.getElementById('lockMsg');msg.textContent='Decrypting…';
+  try{DATA=await unlock(document.getElementById('pw').value);}catch(err){msg.textContent=err.nodata?'Per-user views are not published on this site, because they show volunteers\' real spending. The author can demo them on request.':'That password did not work.';return;}
+  try{try{sessionStorage.setItem('ledger_pw',document.getElementById('pw').value)}catch(e){}
+    msg.textContent='Loading the SQL engine…';
+    SQL=await initSqlJs({locateFile:f=>(window.LEDGER_LIB??'https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/')+f});
+    initApp();document.getElementById('lockBox').classList.add('hidden');document.getElementById('userApp').classList.remove('hidden');redrawCharts();
+  }catch(err){msg.textContent='Unlocked, but the app failed to load: '+err.message;}
+};
+try{const p=sessionStorage.getItem('ledger_pw');if(p){document.getElementById('pw').value=p;}}catch(e){}
+
+const CAT_COL={Food_Dining:'#FF6B57',Groceries:'#7BD389',Transport_Auto:'#62C6EE',Shopping_Retail:'#FFB238',Utilities_Telecom:'#B9A3FF',Health_Wellness:'#4FB3A9',Travel:'#E08BD0',Entertainment:'#F4D35E',Government_Fees:'#A0785A',Housing_Education:'#8E9BB5',Digital_Subscriptions:'#5B7FE0',Others:'#6E6E7A'};
+const DISCRETIONARY=['Food_Dining','Shopping_Retail','Entertainment','Digital_Subscriptions','Travel'];
+const nice=c=>c.replace('_',' & ').replace('Food & Dining','Food & dining').replace('Shopping & Retail','Shopping').replace('Transport & Auto','Transport').replace('Utilities & Telecom','Utilities & telecom').replace('Health & Wellness','Health & wellness').replace('Government & Fees','Government fees').replace('Housing & Education','Housing & education').replace('Digital & Subscriptions','Digital subscriptions');
+let TX=[];
+function initApp(){
+  const {cats,merchants,banks,rows}=DATA;
+  TX=rows.map((r,i)=>({id:'t'+String(i).padStart(5,'0'),user:r[0],bank:banks[r[1]],date:r[2],month:r[2].slice(0,7),year:+r[2].slice(0,4),merchant:merchants[r[3]],amt:r[4],c:{true:cats[r[5]],known:r[6]>=0?cats[r[6]]:null,unseen:r[7]>=0?cats[r[7]]:null}}));
+  db=new SQL.Database();
+  db.run("CREATE TABLE expenses(txn_id TEXT,user TEXT,bank TEXT,date TEXT,month TEXT,year INTEGER,merchant TEXT,amount_aed REAL,category TEXT)");
+  const users=[...new Set(TX.map(t=>t.user))].sort();
+  const su=document.getElementById('selUser');
+  su.innerHTML='<option value="ALL">All card-holders</option>'+users.map(u=>{const n=TX.filter(t=>t.user===u).length;const b=[...new Set(TX.filter(t=>t.user===u).map(t=>t.bank))].join(' + ');return `<option value="${u}">${u} · ${b} · ${n.toLocaleString()} expenses</option>`}).join('');
+  su.value=DATA.qs.user;
+  ['selUser','selYear','selSrc'].forEach(id=>document.getElementById(id).onchange=()=>{if(id==='selUser')fillYears();render();});
+  document.getElementById('selMerchCat').onchange=renderMerch;
+  document.getElementById('runSql').onclick=runSql;
+  document.getElementById('selPreset').onchange=e=>{if(e.target.value)document.getElementById('sqlBox').value=e.target.value;};
+  fillYears();render();renderReplay();
+}
+function fillYears(){
+  const u=document.getElementById('selUser').value;
+  const ys=[...new Set(TX.filter(t=>u==='ALL'||t.user===u).map(t=>t.year))].sort();
+  const sy=document.getElementById('selYear');sy.innerHTML='<option value="ALL">All years</option>'+ys.map(y=>`<option>${y}</option>`).join('');
+}
+function src(){return document.getElementById('selSrc').value}
+function current(){
+  const u=document.getElementById('selUser').value,y=document.getElementById('selYear').value,s=src();
+  return TX.filter(t=>(u==='ALL'||t.user===u)&&(y==='ALL'||t.year==+y)).map(t=>({...t,cat:t.c[s]}));
+}
+function loadDb(){
+  const u=document.getElementById('selUser').value,s=src();
+  db.run('PRAGMA query_only=0');db.run('DELETE FROM expenses');
+  const st=db.prepare('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?)');
+  db.run('BEGIN');
+  for(const t of TX){if(u!=='ALL'&&t.user!==u)continue;const c=t.c[s];if(!c)continue;st.run([t.id,t.user,t.bank,t.date,t.month,t.year,t.merchant,t.amt,c]);}
+  db.run('COMMIT');st.free();db.run('PRAGMA query_only=1');
+}
+function render(){
+  const s=src(),rows=current(),u=document.getElementById('selUser').value;
+  const missingPred=s!=='true'&&rows.some(r=>!r.cat);
+  document.getElementById('srcNote').textContent=s==='true'?'Showing the audited labels.':
+    (missingPred?'Model predictions exist only for the five volunteers (out-of-fold). The public-dataset card-holders are shown with true labels only, so they drop out of this view. ':'')+
+    (s==='known'?'Each purchase is categorised by a model that never saw that purchase, but has seen other purchases at the same merchant (random 5-fold).':'Each purchase is categorised by a model that never saw that merchant at all (merchant-grouped 5-fold), the worst case.');
+  const R=rows.filter(r=>r.cat&&r.amt!=null);
+  const total=R.reduce((a,r)=>a+r.amt,0),months=[...new Set(R.map(r=>r.month))].sort();
+  const bycat={};R.forEach(r=>bycat[r.cat]=(bycat[r.cat]||0)+r.amt);
+  const top=Object.entries(bycat).sort((a,b)=>b[1]-a[1])[0];
+  let wrong=0,wrongAmt=0;if(s!=='true'){R.forEach(r=>{if(r.cat!==r.c.true){wrong++;wrongAmt+=r.amt}})}
+  document.getElementById('kpis').innerHTML=[
+    [aed(total)+' AED','total spend','--saffron'],[R.length.toLocaleString(),'expenses · '+months.length+' months','--pom'],
+    [aed(months.length?total/months.length:0)+' AED','average per active month','--mint'],
+    s==='true'?[top?nice(top[0]):'–','largest category','--sky']:[(R.length?Math.round(100*wrong/R.length):0)+'%','of purchases misfiled ('+aed(wrongAmt)+' AED)','--sky']
+  ].map(k=>`<div class="card stat"><b style="color:var(${k[2]})">${k[0]}</b><span>${k[1]}</span></div>`).join('');
+  // merchant cat select
+  const smc=document.getElementById('selMerchCat'),prev=smc.value;
+  smc.innerHTML='<option value="ALL">All categories</option>'+Object.keys(bycat).sort().map(c=>`<option value="${c}">${nice(c)}</option>`).join('');
+  if([...smc.options].some(o=>o.value===prev))smc.value=prev;
+  renderMerch();drawUserCharts(R,months,bycat);loadDb();renderSave();renderPresets();
+  document.getElementById('sqlOut').innerHTML='';
+}
+function renderMerch(){
+  const c=document.getElementById('selMerchCat').value;
+  const R=current().filter(r=>r.cat&&r.amt!=null&&(c==='ALL'||r.cat===c));
+  const m={};R.forEach(r=>{m[r.merchant]=m[r.merchant]||{n:0,a:0,cat:r.cat};m[r.merchant].n++;m[r.merchant].a+=r.amt});
+  const top=Object.entries(m).sort((a,b)=>b[1].a-a[1].a).slice(0,10);
+  document.getElementById('merchTable').innerHTML='<tr><th>Merchant</th><th>Category</th><th class="num">Purchases</th><th class="num">AED</th></tr>'+
+    (top.length?top.map(([k,v])=>`<tr><td>${esc(k)}</td><td><span class="note">${nice(v.cat)}</span></td><td class="num">${v.n}</td><td class="num">${aed(v.a)}</td></tr>`).join(''):'<tr><td colspan="4" class="note">No expenses in this selection.</td></tr>');
+}
+function drawUserCharts(R,months,bycat){
+  if(!window.Chart) return;
+  Object.values(charts).forEach(c=>c.destroy());charts={};
+  const g=css('--line'),t=css('--muted');
+  const cats=Object.keys(bycat).sort((a,b)=>bycat[b]-bycat[a]);
+  const idx={};months.forEach((m,i)=>idx[m]=i);
+  const ds=cats.map(c=>{const d=new Array(months.length).fill(0);R.forEach(r=>{if(r.cat===c)d[idx[r.month]]+=r.amt});return{label:nice(c),data:d.map(v=>Math.round(v)),backgroundColor:CAT_COL[c]}});
+  charts.m=new Chart(document.getElementById('monthChart'),{type:'bar',data:{labels:months,datasets:ds},options:{maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{color:t,maxRotation:60,autoSkip:true},grid:{display:false}},y:{stacked:true,ticks:{color:t},grid:{color:g},title:{display:true,text:'AED',color:t}}},plugins:{legend:{position:'bottom',labels:{color:t,boxWidth:10,font:{size:11}}},tooltip:{mode:'index',filter:i=>i.raw>0}}}});
+  charts.c=new Chart(document.getElementById('catChart'),{type:'bar',data:{labels:cats.map(nice),datasets:[{data:cats.map(c=>Math.round(bycat[c])),backgroundColor:cats.map(c=>CAT_COL[c])}]},options:{indexAxis:'y',maintainAspectRatio:false,scales:{x:{ticks:{color:t},grid:{color:g},title:{display:true,text:'AED',color:t}},y:{ticks:{color:t},grid:{display:false}}},plugins:{legend:{display:false}}}});
+}
+function redrawCharts(){if(window.Chart){drawRel();if(DATA&&!document.getElementById('userApp').classList.contains('hidden'))render();}}
+
+// ---------- tool-based savings analysis ----------
+function renderSave(){
+  const u=document.getElementById('selUser').value,s=src();
+  const intro=document.getElementById('saveIntro'),out=document.getElementById('saveOut');
+  const R=TX.filter(t=>(u==='ALL'||t.user===u)&&t.c[s]&&t.amt!=null).map(t=>({...t,cat:t.c[s]}));
+  const months=[...new Set(R.map(r=>r.month))].sort();
+  if(months.length<9){intro.textContent='Needs at least 9 months of data for this card-holder.';out.innerHTML='';return;}
+  const last=months.slice(-3),base=months.slice(-9,-3);
+  intro.innerHTML=`Recent = ${last[0]} to ${last[2]}; baseline = the 6 months before. Only discretionary categories are suggested; bills, rent and government fees are never targets. Every figure below is computed, not written by a model.`;
+  const sum=(ms,c)=>ms.map(m=>R.filter(r=>r.month===m&&r.cat===c).reduce((a,r)=>a+r.amt,0));
+  const med=a=>{const b=[...a].sort((x,y)=>x-y),n=b.length;return n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2};
+  const rows=DISCRETIONARY.map(c=>{const recent=sum(last,c).reduce((a,b)=>a+b,0)/3,m=med(sum(base,c));return{c,recent,m,excess:recent-m}}).filter(r=>r.recent>0).sort((a,b)=>b.excess-a.excess);
+  // recurring
+  const last4=months.slice(-4),rec={};
+  R.filter(r=>last4.includes(r.month)&&['Digital_Subscriptions','Entertainment'].includes(r.cat)).forEach(r=>{rec[r.merchant]=rec[r.merchant]||{ms:new Set(),a:0,cat:r.cat};rec[r.merchant].ms.add(r.month);rec[r.merchant].a+=r.amt});
+  const recurring=Object.entries(rec).filter(([k,v])=>v.ms.size>=3).map(([k,v])=>[k,v.a/4,v.cat]).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const overs=rows.filter(r=>r.excess>50&&r.recent>r.m*1.15);
+  let h='<table><tr><th>Category</th><th class="num">Recent / month</th><th class="num">Usual (median)</th><th class="num">Above usual</th></tr>'+
+    rows.map(r=>`<tr><td>${nice(r.c)}</td><td class="num">${aed(r.recent)}</td><td class="num">${aed(r.m)}</td><td class="num ${r.excess>50&&r.recent>r.m*1.15?'bad':''}">${r.excess>0?'+':''}${aed(r.excess)}</td></tr>`).join('')+'</table>';
+  const totalOver=overs.reduce((a,r)=>a+r.excess,0);
+  h+=`<p class="note"><b>Back to usual in the flagged categories:</b> ${overs.length?'about '+aed(totalOver)+' AED a month ('+overs.map(r=>nice(r.c)).join(', ')+').':'nothing is clearly above usual right now.'}</p>`;
+  if(recurring.length) h+='<h3 style="margin-top:12px;font-size:16px">Recurring payments (3+ of the last 4 months)</h3><table>'+recurring.map(r=>`<tr><td>${esc(r[0])}</td><td><span class="note">${nice(r[2])}</span></td><td class="num">${aed2(r[1])} AED / month</td></tr>`).join('')+'</table>';
+  h+='<p class="note">Not financial advice.</p>';
+  out.innerHTML=h;
+}
+
+// ---------- SQL ----------
+const BANNED=/\b(INSERT|UPDATE|DELETE|DROP|ALTER|ATTACH|DETACH|PRAGMA|CREATE|REPLACE|VACUUM)\b/i;
+function guard(sql){
+  sql=sql.trim().replace(/^`+|`+$/g,'').trim().replace(/^sql\s*/i,'').trim().replace(/;\s*$/,'').trim();
+  if(sql.includes(';'))throw Error('more than one statement');
+  if(!/^(SELECT|WITH)\b/i.test(sql))throw Error('not a SELECT query');
+  if(BANNED.test(sql))throw Error('forbidden keyword');
+  return sql;
+}
+function runSql(){
+  const out=document.getElementById('sqlOut');
+  let sql;try{sql=guard(document.getElementById('sqlBox').value)}catch(e){out.innerHTML=`<p class="bad">Rejected by the guard: ${esc(e.message)}</p>`;return}
+  try{
+    const t0=performance.now();const res=db.exec(sql);const ms=Math.round(performance.now()-t0);
+    if(!res.length){out.innerHTML='<p class="note">No rows.</p>';return}
+    const {columns,values}=res[0];
+    out.innerHTML=`<div class="scroll"><table><tr>${columns.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>${values.slice(0,200).map(r=>`<tr>${r.map(v=>`<td class="${typeof v==='number'?'num':''}">${typeof v==='number'&&!Number.isInteger(v)?aed2(v):esc(v)}</td>`).join('')}</tr>`).join('')}</table></div><p class="note">${values.length} row(s) · ${ms} ms${values.length>200?' · first 200 shown':''}</p>`;
+  }catch(e){out.innerHTML=`<p class="bad">Query failed: ${esc(e.message)}</p>`}
+}
+function renderPresets(){
+  const u=document.getElementById('selUser').value;const W=u==='ALL'?'1=1':`user = '${u}'`;
+  const P=[
+   ['Spend by category, all years',`SELECT category, ROUND(SUM(amount_aed),2) AS aed, COUNT(*) AS n\nFROM expenses WHERE ${W}\nGROUP BY category ORDER BY aed DESC`],
+   ['Biggest merchant in shopping',`SELECT merchant, ROUND(SUM(amount_aed),2) AS aed\nFROM expenses WHERE ${W} AND category='Shopping_Retail'\nGROUP BY merchant ORDER BY aed DESC LIMIT 5`],
+   ['Monthly total, last 12 months',`SELECT month, ROUND(SUM(amount_aed),2) AS aed\nFROM expenses WHERE ${W}\nGROUP BY month ORDER BY month DESC LIMIT 12`],
+   ['Food and dining by year',`SELECT year, ROUND(SUM(amount_aed),2) AS aed\nFROM expenses WHERE ${W} AND category='Food_Dining'\nGROUP BY year ORDER BY year`],
+   ['Largest single purchases',`SELECT date, merchant, category, amount_aed\nFROM expenses WHERE ${W}\nORDER BY amount_aed DESC LIMIT 10`],
+   ['Try the guard: DROP TABLE',`DROP TABLE expenses`],
+  ];
+  if(u===DATA.qs.user) DATA.qs.questions.forEach((q,i)=>P.push([`Q${i+1} gold: ${q.question}`,q.gold_sql]));
+  const sp=document.getElementById('selPreset');sp.innerHTML='<option value="">Pick an example…</option>'+P.map(p=>`<option value="${esc(p[1])}">${esc(p[0])}</option>`).join('');
+  document.getElementById('sqlBox').value=P[0][1];
+}
+
+// ---------- replay ----------
+function fmtAns(a){if(a==null)return '<span class="bad">no result</span>';return a.map(r=>r.map(v=>typeof v==='number'&&!Number.isInteger(v)?aed2(v):esc(v)).join(', ')).join('; ')}
+function renderReplay(){
+  const Q=DATA.qs;
+  document.getElementById('replayNote').innerHTML=`The evaluated run used card-holder <b>${Q.user}</b> and <span class="mono">${esc(Q.model)}</span>, greedy decoding, Colab T4. Pick ${Q.user} above to query the same data. Gold answers use true labels; the next two columns use model categories.`;
+  document.getElementById('replay').innerHTML=Q.questions.map((q,i)=>`<div class="q">
+    <div><b>Q${i+1}.</b> ${esc(q.question)} <span class="badge">${q.uses_category?'category':'control'}</span> ${q.llm_correct?'<span class="ok">LLM ✓</span>':'<span class="bad">LLM ✗</span>'}</div>
+    <div class="cols2" style="margin-top:6px">
+      <div><div class="note" style="margin:0">Gold SQL → <b>${fmtAns(q.gold_answer)}</b></div><pre>${esc(q.gold_sql)}</pre></div>
+      <div><div class="note" style="margin:0">LLM SQL → <b>${fmtAns(q.llm_answer)}</b>${q.llm_error?' · <span class="bad">'+esc(q.llm_error)+'</span>':''}</div><pre>${esc(q.llm_sql)}</pre></div>
+    </div>
+    <div class="note" style="margin-top:4px">Same gold SQL on model categories: known merchants ${fmtAns(q.ans_pred_known)} ${q.ok_pred_known?'<span class="ok">✓</span>':'<span class="bad">✗</span>'} · brand-new merchants ${fmtAns(q.ans_pred_unseen)} ${q.ok_pred_unseen?'<span class="ok">✓</span>':'<span class="bad">✗</span>'}</div>
+  </div>`).join('');
+  document.getElementById('advice').innerHTML=DATA.advice.map(a=>`<div class="card" style="margin-top:10px"><b>${esc(a.question)}</b><pre style="margin-top:6px;color:var(--text)">${esc(a.answer)}</pre></div>`).join('');
+}
+window.addEventListener('load',()=>{if(window.Chart)drawRel();});
+</script>
+</body>
+</html>
