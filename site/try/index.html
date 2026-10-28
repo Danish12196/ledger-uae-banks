@@ -114,6 +114,13 @@ progress{width:100%;height:8px;margin-top:10px;accent-color:var(--saffron)}
 .cut .item .sub{margin-top:4px}
 .pill{display:inline-block;font-size:12px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--bg3);color:var(--muted)}
 .pill.ok{color:var(--ok)}
+.pill.low{color:var(--bad)}
+.yearbar{margin-bottom:12px}.yearpick{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.yearpick .seg{flex-wrap:wrap}
+th.sort{cursor:pointer;user-select:none;white-space:nowrap}th.sort:hover,th.sort.on{color:var(--text)}
+th.sort .arr{opacity:.35;margin-left:3px}th.sort.on .arr{opacity:1;color:var(--saffron)}
+#review td:nth-child(2){max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#review select{min-width:170px}
+.okbtn{padding:4px 10px;font-size:13px;white-space:nowrap}.okbtn:hover{border-color:var(--ok);color:var(--ok)}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
 .status{font-size:14px;color:var(--muted)}
 .warn{color:var(--bad);font-weight:700}
@@ -247,7 +254,8 @@ footer{color:var(--muted);font-size:13px;padding:30px 0 40px;border-top:1px soli
   </section>
 
   <section>
-    <h2>Month by month</h2>
+    <div class="toolbar yearbar"><h2 style="font-size:24px">Month by month</h2>
+      <div class="yearpick"><span class="sub" id="yearNote"></span><div class="seg" id="yearSeg" role="group" aria-label="Year shown in the charts and tables below"></div></div></div>
     <div class="card"><div class="chartbox"><canvas id="monthChart" aria-label="Monthly spending by category"></canvas></div></div>
   </section>
 
@@ -308,7 +316,9 @@ const colorMap = {}; let extraIdx = 0;
 const colorOf = c => COLORS[c] || colorMap[c] || (colorMap[c] = EXTRA[extraIdx++ % EXTRA.length]);
 
 let SQL = null, sqlReady = null;
-const S = { header: null, rows: null, map: null, built: null, db: null, ctx: null, chart: null, engine: null, mode: 'auto', fileName: '', src: 'csv', groups: null, pipe: null, lookup: new Map() };
+const S = { header: null, rows: null, map: null, built: null, db: null, ctx: null, chart: null, engine: null, mode: 'auto', fileName: '', src: 'csv', groups: null, pipe: null, lookup: new Map(),
+  year: 'all', vdb: null, revInit: false, confirmed: new Set(),
+  sort: { review: { k: 3, d: -1 }, tx: { k: 0, d: -1 } } };
 function getSQL(){
   if (!sqlReady) sqlReady = initSqlJs({ locateFile: f => 'https://cdn.jsdelivr.net/npm/sql.js@1.13.0/dist/' + f }).then(s => SQL = s);
   return sqlReady;
@@ -630,10 +640,70 @@ function refreshAll(){
     [C.aed(C.recurring(S.db).filter(r => r.active).reduce((a, r) => a + r.typical, 0)), 'Recurring a month']
   ];
   $('kpis').innerHTML = kp.map(([v, l]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div></div>`).join('');
-  renderChart(); renderCats(); renderTop(); renderRecurring(); renderCuts(); renderReview(); renderTx(); renderPipe();
+  renderPipe(); renderScoped();
+}
+// ------------------------------------------------------------- year filter
+// Everything from "Month by month" down reads from viewDB(): the full database for "All",
+// or a copy holding only the chosen year (rebuilt whenever the data or the year changes).
+function viewDB(){
+  if (S.year === 'all') return S.db;
+  if (S.vdb) return S.vdb;
+  const ddl = C.scalar(S.db, "SELECT sql FROM sqlite_master WHERE type='table' AND name='tx'");
+  const r = C.query(S.db, 'SELECT * FROM tx WHERE year=?', [+S.year]);
+  const db = new SQL.Database(); db.run(ddl); db.run('BEGIN');
+  const st = db.prepare(`INSERT INTO tx VALUES (${r.cols.map(() => '?').join(',')})`);
+  for (const row of r.rows) st.run(row);
+  st.free(); db.run('COMMIT');
+  return S.vdb = db;
+}
+function dropView(){ if (S.vdb) { S.vdb.close(); S.vdb = null; } }
+function renderYears(){
+  const years = C.query(S.db, "SELECT year, COUNT(*) FROM tx WHERE direction='expense' GROUP BY year ORDER BY year").rows;
+  if (S.year !== 'all' && !years.some(([y]) => String(y) === S.year)) S.year = 'all';
+  const opts = (years.length > 1 ? [['all', 'All years']] : []).concat(years.map(([y]) => [String(y), String(y)]));
+  $('yearSeg').innerHTML = opts.map(([v, l]) => `<button type="button" data-y="${v}" aria-pressed="${v === S.year || years.length === 1}" class="${v === S.year || years.length === 1 ? 'on' : ''}">${l}</button>`).join('');
+  $('yearSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+    if (b.dataset.y === S.year || years.length === 1) return;
+    S.year = b.dataset.y; dropView(); renderScoped();
+  });
+  $('yearNote').textContent = S.year === 'all' ? '' : 'Charts and tables below show ' + S.year + ' only';
+}
+function renderScoped(){
+  dropView(); renderYears();
+  renderChart(); renderCats(); renderTop(); renderRecurring(); renderCuts(); renderReview(); renderTx();
+}
+// sortable tables: rows are raw values; keys[i] is the raw index header i sorts on (null = not sortable)
+function sortRows(rows, spec, keyFn){
+  const { k, d } = spec;
+  return rows.slice().sort((a, b) => {
+    const x = keyFn ? keyFn(a, k) : a[k], y = keyFn ? keyFn(b, k) : b[k];
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;   // blanks always last
+    return (typeof x === 'string' ? x.localeCompare(y, undefined, { sensitivity: 'base', numeric: true }) : x - y) * d;
+  });
+}
+function sortTable(name, cols, keys, rows, numCols){
+  const sp = S.sort[name];
+  return `<table><thead><tr>${cols.map((c, i) => {
+    const k = keys[i], on = k != null && k === sp.k, cls = (numCols.includes(i) ? 'num ' : '') + (k != null ? 'sort' : '') + (on ? ' on' : '');
+    return `<th class="${cls}"${k != null ? ` data-k="${k}"${/confidence/i.test(c) ? ' data-asc="1"' : ''} title="Sort by ${esc(c)}" aria-sort="${on ? (sp.d > 0 ? 'ascending' : 'descending') : 'none'}"` : ''}>${esc(c)}${k != null ? `<span class="arr">${on ? (sp.d > 0 ? '▲' : '▼') : '↕'}</span>` : ''}</th>`;
+  }).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((v, i) => `<td class="${numCols.includes(i) ? 'num' : ''}">${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+function wireSort(el, name, rerender){
+  el.querySelectorAll('th.sort').forEach(th => th.onclick = () => {
+    const k = +th.dataset.k, sp = S.sort[name];
+    // first click: text A→Z, amounts high→low, confidence low→high (least sure first)
+    S.sort[name] = sp.k === k ? { k, d: -sp.d } : { k, d: th.dataset.asc || !th.classList.contains('num') ? 1 : -1 };
+    rerender();
+  });
+}
+function confCell(conf, by, guessed, avgOf){
+  if (by === 'you') return '<span class="pill ok">✓ you</span>';
+  if (conf == null) return `<span class="sub">${by === 'rules' ? 'rule' : by === 'lexicon' ? 'word list' : '—'}</span>`;
+  const p = Math.round(conf * 100);
+  return `<span class="pill${guessed ? ' low' : ''}" title="${avgOf > 1 ? `Average calibrated confidence over ${avgOf} transactions` : 'Calibrated model confidence'}">${p}%</span>`;
 }
 function renderChart(){
-  const m = C.monthlyByCategory(S.db);
+  const m = C.monthlyByCategory(viewDB());
   const css = getComputedStyle(document.documentElement);
   const muted = css.getPropertyValue('--muted').trim(), line = css.getPropertyValue('--line').trim();
   if (S.chart) S.chart.destroy();
@@ -649,7 +719,7 @@ function renderChart(){
   });
 }
 function renderCats(){
-  const rows = C.categoryTotals(S.db), max = Math.max(...rows.map(r => r[1]), 1), tot = rows.reduce((a, r) => a + r[1], 0);
+  const rows = C.categoryTotals(viewDB()), max = Math.max(...rows.map(r => r[1]), 1), tot = rows.reduce((a, r) => a + r[1], 0);
   $('catBars').innerHTML = rows.map(([c, v, n]) => `<div class="bar" title="${n} transactions"><span><span class="dot" style="background:${colorOf(c)}"></span>${esc(C.catName(c))}</span>
     <div class="track"><div class="fill" style="width:${(100 * v / max).toFixed(1)}%;background:${colorOf(c)}"></div></div><span class="val">${C.aed(v)} <span class="sub">${Math.round(100 * v / tot)}%</span></span></div>`).join('');
 }
@@ -659,57 +729,90 @@ function table(cols, rows, numCols){
     rows.map(r => `<tr>${r.map((v, i) => `<td class="${numCols.includes(i) ? 'num' : ''}">${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
 function renderTop(){
-  const rows = C.topMerchants(S.db, 10);
+  const rows = C.topMerchants(viewDB(), 10);
   $('topMer').innerHTML = table(['Merchant', 'Category', 'Total', 'Txns'], rows.map(([m, c, t, n]) => [esc(m), `<span class="dot" style="background:${colorOf(c)}"></span>${esc(C.catName(c))}`, C.aed(t), n]), [2, 3]);
 }
 function renderRecurring(){
-  const rows = C.recurring(S.db);
+  const rows = C.recurring(viewDB());
   if (!rows.length) { $('recur').innerHTML = '<p class="sub">Nothing that repeats regularly.</p>'; return; }
   $('recur').innerHTML = `<div class="tablewrap">${table(['Merchant', 'Typical', 'Months', 'Status'], rows.slice(0, 14).map(r => [esc(r.merchant), C.aed(r.typical), r.months,
     r.active ? '<span class="pill ok">active</span>' : `<span class="pill">stopped ${C.fmtDate(r.last)}</span>`]), [1, 2])}</div>`;
 }
 function renderCuts(){
   const disc = S.built.catSource === 'file' ? null : undefined;
-  const r = C.cutSuggestions(S.db, disc);
+  const r = C.cutSuggestions(viewDB(), disc);
   if (r.window && r.window.recent) $('cutSub').textContent = `Flexible categories (dining, shopping, entertainment, travel, subscriptions) where ${C.monthShort(r.window.recent[0])} – ${C.monthShort(r.window.recent[2])} ran above your usual month (the median of the ${r.window.base.length} months before).`;
   if (!r.items.length) { $('cuts').innerHTML = `<p class="sub">${r.note ? esc(r.note) : 'Nothing stands out: your flexible spending is at or below its usual level.'}</p>`; return; }
   $('cuts').innerHTML = r.items.map(it => `<div class="item"><span class="dot" style="background:${colorOf(it.category)}"></span><b>${esc(C.catName(it.category))}</b>: ${C.aed(it.recent)} a month lately vs ${C.aed(it.usual)} usually.
     Getting back to usual saves about <b>${C.aed(it.saving)} a month</b>.${it.drivers.length ? `<div class="sub">Mostly ${it.drivers.map(d => `${esc(d.merchant)} (${C.aed(d.recent)} vs ${C.aed(d.usual)})`).join(', ')}.</div>` : ''}</div>`).join('');
 }
 function renderReview(){
-  const q = $('revSearch').value.trim().toLowerCase(), onlyGuess = $('revGuess').checked;
-  const guessed = new Set(S.built.tx.filter(t => t.catGuessed).map(t => t.merchant));
-  const rows = C.query(S.db, "SELECT merchant, category, COUNT(*), ROUND(SUM(amount),2), MIN(description) FROM tx WHERE direction='expense' GROUP BY merchant, category ORDER BY SUM(amount) DESC").rows
-    .filter(r => (!q || (r[0] + ' ' + r[4]).toLowerCase().includes(q)) && (!onlyGuess || guessed.has(r[0])));
+  const q = $('revSearch').value.trim().toLowerCase();
+  const sms = S.src === 'sms';
+  const guessed = new Set(S.built.tx.filter(t => t.catGuessed && t.direction === 'expense').map(t => t.merchant + '\u0001' + t.category));
+  if (!S.revInit) { S.revInit = true; $('revGuess').checked = sms && guessed.size > 0; }   // open on the to-check list when there is one
+  const onlyGuess = $('revGuess').checked;
+  const confCol = sms ? 'AVG(confidence)' : 'NULL', byCol = sms ? 'MIN(decided_by)' : "'lexicon'";
+  // raw: 0 merchant, 1 category, 2 txns, 3 total, 4 example, 5 confidence, 6 decided_by, 7 to-check
+  const raw = C.query(viewDB(), `SELECT merchant, category, COUNT(*), ROUND(SUM(amount),2), MIN(description), ${confCol}, ${byCol} FROM tx WHERE direction='expense' GROUP BY merchant, category`).rows
+    .map(r => { const key = r[0] + '\u0001' + r[1]; r[6] = r[6] === 'your corrections' || S.confirmed.has(key) ? 'you' : r[6]; r.push(guessed.has(key)); return r; })
+    .filter(r => (!q || (r[0] + ' ' + r[4] + ' ' + C.catName(r[1])).toLowerCase().includes(q)) && (!onlyGuess || r[7]));
+  const nCheck = new Set([...guessed].map(k => k.split('\u0001')[0])).size;
   const fileCats = S.built.catSource === 'file' ? [...new Set(S.built.tx.filter(t => t.direction === 'expense').map(t => t.category))] : [];
   const allCats = [...new Set([...C.CATS, ...fileCats])];
-  const sms = S.src === 'sms';
   $('revGuessLabel').textContent = sms ? 'Only show ones to check' : 'Only show ones Ledger had to guess';
-  $('revInfo').textContent = sms
-    ? `${guessed.size} merchant${guessed.size === 1 ? '' : 's'} below the confidence threshold: please check ${guessed.size === 1 ? 'it' : 'them'}`
-    : `${guessed.size} merchant${guessed.size === 1 ? '' : 's'} didn't match the lexicon and went to Others`;
-  $('review').innerHTML = rows.length ? table(['Merchant', 'Example text', 'Txns', 'Total', 'Category'], rows.slice(0, 300).map(([m, c, n, t, d]) => [
-    esc(m) + (guessed.has(m) ? ` <span class="pill">${S.src === 'sms' ? 'check' : 'guessed'}</span>` : ''), `<span class="sub">${esc(d.slice(0, 60))}</span>`, n, C.aed(t),
-    `<select data-m="${esc(m)}" data-c="${esc(c)}">${allCats.map(x => `<option value="${esc(x)}" ${x === c ? 'selected' : ''}>${esc(C.catName(x))}</option>`).join('')}</select>`]), [2, 3])
-    : '<p class="sub" style="padding:12px">No merchants match.</p>';
+  $('revInfo').textContent = !nCheck ? 'All checked ✓'
+    : sms ? `${nCheck} merchant${nCheck === 1 ? '' : 's'} below the confidence threshold: tick the ones that look right, change the rest`
+          : `${nCheck} merchant${nCheck === 1 ? '' : 's'} didn't match the lexicon and went to Others`;
+  // header i sorts on raw index keys[i]; confidence sorts "you" above any model score
+  const keys = [0, 4, 5, 2, 3, 1, null];
+  const rows = sortRows(raw, S.sort.review, (r, k) => k === 5 ? (r[6] === 'you' ? 2 : r[5]) : k === 1 ? C.catName(r[1]) : r[k]);
+  $('review').innerHTML = rows.length ? sortTable('review', ['Merchant', 'Example text', 'Confidence', 'Txns', 'Total', 'Category', ''], keys, rows.slice(0, 300).map(([m, c, n, t, d, conf, by, chk]) => [
+    esc(m) + (chk ? ` <span class="pill">${sms ? 'check' : 'guessed'}</span>` : ''), `<span class="sub">${esc(String(d).slice(0, 60))}</span>`, confCell(conf, by, chk, n), n, C.aed(t),
+    `<select data-m="${esc(m)}" data-c="${esc(c)}" aria-label="Category for ${esc(m)}">${allCats.map(x => `<option value="${esc(x)}" ${x === c ? 'selected' : ''}>${esc(C.catName(x))}</option>`).join('')}</select>`,
+    chk ? `<button class="small okbtn" data-m="${esc(m)}" data-c="${esc(c)}" title="The category is right: stop flagging it">✓ Looks right</button>` : '']), [2, 3, 4])
+    : `<p class="sub" style="padding:12px">${onlyGuess && !q ? 'Nothing left to check. Untick the box to see every merchant.' : 'No merchants match.'}</p>`;
+  wireSort($('review'), 'review', renderReview);
   $('review').querySelectorAll('select').forEach(s => s.onchange = () => {
     S.db.run("UPDATE tx SET category=? WHERE merchant=? AND category=? AND direction='expense'", [s.value, s.dataset.m, s.dataset.c]);
     S.built.tx.forEach(t => { if (t.merchant === s.dataset.m && t.category === s.dataset.c && t.direction === 'expense') {
       t.category = s.value; t.catGuessed = false; t.needs_review = false;
       if (t.text != null) S.lookup.set(t.text, [s.value, 0.99]);     // tier 1: your corrections, remembered for this session
     } });
-    if (S.src === 'sms') S.db.run("UPDATE tx SET needs_review=0, confidence=0.99, decided_by='your corrections' WHERE merchant=? AND category=? AND direction='expense'", [s.dataset.m, s.value]);
+    if (sms) S.db.run("UPDATE tx SET needs_review=0, confidence=0.99, decided_by='your corrections' WHERE merchant=? AND category=? AND direction='expense'", [s.dataset.m, s.value]);
+    S.confirmed.add(s.dataset.m + '\u0001' + s.value);
     const y = window.scrollY; refreshAll(); window.scrollTo(0, y);
+  });
+  // "Looks right": keep the category and the model's score, just stop flagging it
+  $('review').querySelectorAll('.okbtn').forEach(b => b.onclick = () => {
+    const m = b.dataset.m, c = b.dataset.c;
+    S.built.tx.forEach(t => { if (t.merchant === m && t.category === c && t.direction === 'expense') {
+      t.catGuessed = false; t.needs_review = false;
+      if (t.text != null) S.lookup.set(t.text, [c, 0.99]);
+    } });
+    if (sms) S.db.run("UPDATE tx SET needs_review=0 WHERE merchant=? AND category=? AND direction='expense'", [m, c]);
+    S.confirmed.add(m + '\u0001' + c);
+    const y = window.scrollY; renderReview(); renderTx(); renderPipe(); window.scrollTo(0, y);
   });
 }
 $('revSearch').oninput = renderReview; $('revGuess').onchange = renderReview;
 function renderTx(){
   const q = $('txSearch').value.trim().toLowerCase();
-  const all = C.query(S.db, "SELECT date, merchant, category, amount, direction, description FROM tx ORDER BY date DESC, id DESC").rows;
-  const rows = all.filter(r => !q || r.join(' ').toLowerCase().includes(q));
-  $('txTable').innerHTML = table(['Date', 'Merchant', 'Category', 'Amount', 'Type', 'Original text'], rows.slice(0, 300).map(r => [r[0], esc(r[1]), esc(C.catName(r[2])), C.aed(r[3]),
-    r[4] === 'expense' ? 'spend' : r[4], `<span class="sub">${esc(r[5])}</span>`]), [3]);
-  $('txInfo').textContent = rows.length > 300 ? `Showing 300 of ${rows.length.toLocaleString()} matching rows. Search to narrow down.` : `${rows.length.toLocaleString()} rows.`;
+  const sms = S.src === 'sms';
+  // raw: 0 date, 1 merchant, 2 category, 3 amount, 4 direction, 5 description, 6 confidence, 7 decided_by, 8 id
+  const all = C.query(viewDB(), `SELECT date, merchant, category, amount, direction, description, ${sms ? 'confidence, decided_by' : 'NULL, NULL'}, id FROM tx`).rows
+    .map(r => { if (r[7] === 'your corrections' || S.confirmed.has(r[1] + '\u0001' + r[2])) r[7] = 'you'; return r; });
+  const filtered = all.filter(r => !q || [r[0], r[1], C.catName(r[2]), r[3], r[4], r[5]].join(' ').toLowerCase().includes(q));
+  const guessedIds = new Set(S.built.tx.filter(t => t.catGuessed).map(t => t.id));
+  const cols = ['Date', 'Merchant', 'Category'].concat(sms ? ['Confidence'] : []).concat(['Amount', 'Type', 'Original text']);
+  const keys = [0, 1, 2].concat(sms ? [6] : []).concat([3, 4, 5]);
+  const rows = sortRows(filtered, S.sort.tx, (r, k) => k === 6 ? (r[7] === 'you' ? 2 : r[6]) : k === 2 ? C.catName(r[2]) : k === 0 ? r[0] + String(r[8]).padStart(9, '0') : r[k]);
+  $('txTable').innerHTML = sortTable('tx', cols, keys, rows.slice(0, 300).map(r => [r[0], esc(r[1]), esc(C.catName(r[2]))]
+    .concat(sms ? [r[4] === 'expense' ? confCell(r[6], r[7], guessedIds.has(r[8])) : ''] : [])
+    .concat([C.aed(r[3]), r[4] === 'expense' ? 'spend' : r[4], `<span class="sub">${esc(r[5])}</span>`])), [sms ? 4 : 3]);
+  wireSort($('txTable'), 'tx', renderTx);
+  $('txInfo').textContent = (filtered.length > 300 ? `Showing 300 of ${filtered.length.toLocaleString()} matching rows. Search or sort to narrow down.` : `${filtered.length.toLocaleString()} rows.`)
+    + (S.year === 'all' ? '' : ` (${S.year} only)`);
 }
 $('txSearch').oninput = renderTx;
 
@@ -813,9 +916,9 @@ $('llmLoad').onclick = async () => {
 
 // ------------------------------------------------------------- reset
 function reset(){
-  if (S.db) { S.db.close(); S.db = null; }
+  dropView(); if (S.db) { S.db.close(); S.db = null; }
   if (S.chart) { S.chart.destroy(); S.chart = null; }
-  Object.assign(S, { header: null, rows: null, map: null, built: null, ctx: null, fileName: '', src: 'csv', groups: null, pipe: null });
+  Object.assign(S, { header: null, rows: null, map: null, built: null, ctx: null, fileName: '', src: 'csv', groups: null, pipe: null, year: 'all', revInit: false, confirmed: new Set() });
   $('file').value = ''; $('feed').innerHTML = ''; $('q').value = ''; $('loadErr').textContent = '';
   $('results').classList.add('hidden'); $('mapSec').classList.add('hidden'); $('smsSec').classList.add('hidden'); $('loadSec').classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
