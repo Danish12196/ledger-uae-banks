@@ -13,3 +13,18 @@ Synthetic rows generated: 0. Real train 1,954; validation 559; frozen test 704. 
 
 Per-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.
 
+## Round 1
+
+Synthetic rows generated: 20,000. Public authored formats; baseline descriptor variation.
+
+| Model | Training | Validation macro-F1 | Accuracy | Train rows |
+|---|---|---:|---:|---:|
+| ledger | real_only | 0.8932 | 0.9320 | 1954 |
+| char_sms | real_only | 0.7346 | 0.8533 | 1954 |
+| ledger | real_plus_synthetic | 0.9072 | 0.9428 | 17806 |
+| ledger | synthetic_only | 0.5916 | 0.6798 | 15852 |
+| char_sms | real_plus_synthetic | 0.6960 | 0.8265 | 17806 |
+| char_sms | synthetic_only | 0.4105 | 0.4150 | 15852 |
+
+Per-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.
+
