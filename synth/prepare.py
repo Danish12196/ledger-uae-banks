@@ -119,7 +119,7 @@ def run():
                'partitions':labelled.partition.value_counts().to_dict(),
                'class_counts':pd.crosstab(labelled.label,labelled.partition).to_dict(),
                'bank_counts':pd.crosstab(labelled.bank,labelled.partition).to_dict(),
-               'row_overrides':'Not applied: original txn IDs depend on historical export ordering; ambiguous workbook rows excluded by merchant-level provenance limitation.'}
+               'row_overrides':'The supplied newer workbook has zero explicit row overrides; merchant-level annotations are used.'}
     (LOCAL/'summary.json').write_text(json.dumps(summary,indent=2),encoding='utf-8')
     print(json.dumps(summary,indent=2))
 

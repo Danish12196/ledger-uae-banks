@@ -29,7 +29,7 @@ from scripts.categoriser_lib import add_features, tfidf_logreg
 from scripts.rules import CATS
 from generate import generate, TEMPLATES
 
-DEADLINE=datetime(2026,11,9,3,0,tzinfo=timezone.utc)
+DEADLINE=datetime.fromisoformat(os.environ.get('LEDGER_DEADLINE','2026-11-09T03:00:00+00:00'))
 
 def load_real():
     manifest=json.loads((LOCAL/'frozen.json').read_text(encoding='utf-8'))
@@ -53,9 +53,20 @@ def _fit_predict(train, evaluation, family):
         ('tfidf',TfidfVectorizer(analyzer='char',ngram_range=(2,5),sublinear_tf=True,min_df=2,max_features=80000)),
         ('classifier',LogisticRegression(C=2,class_weight='balanced',max_iter=1500))])
     with threadpool_limits(limits=8), warnings.catch_warnings(record=True) as caught:
-        model.fit(features(train,family),train.label)
+        fallback=False
+        try:
+            model.fit(features(train,family),train.label)
+        except MemoryError:
+            if family!='char_sms':
+                raise
+            # Same multinomial logistic objective/C/weights, lower-memory optimizer.
+            gc.collect()
+            model.set_params(classifier__solver='saga',classifier__random_state=902)
+            model.fit(features(train,family),train.label)
+            fallback=True
         prediction=model.predict(features(evaluation,family))
     convergence=[type(item.message).__name__ for item in caught]
+    if fallback: convergence.append('MemoryFallback_SAGA_same_logistic_objective')
     del model
     gc.collect()
     return prediction, convergence
@@ -156,6 +167,8 @@ def run(rounds=3,commit=False,final=False):
             chosen=max((r for r in all_results if r['round']==number and r['setup']=='real_plus_synthetic'),key=lambda x:x['metrics']['macro_f1'])
             best_scores.append(chosen['metrics']['macro_f1'])
             weights=json.loads((LOCAL/f'round_{number}_weights.json').read_text())
+            if len(best_scores)>=3 and best_scores[-1]-best_scores[-2]<0.005 and best_scores[-2]-best_scores[-3]<0.005:
+                break
             continue
         if datetime.now(timezone.utc)>=DEADLINE:
             break
@@ -203,9 +216,12 @@ def finalize(results=None):
     real=load_real()
     development=real[real.partition!='test']
     test=real[real.partition=='test']
-    output=[]
+    progress_path=LOCAL/'final_progress.json'
+    output=json.loads(progress_path.read_text(encoding='utf-8')) if progress_path.exists() else []
     for family in ('ledger','char_sms'):
         for setup in ('real_only','real_plus_synthetic','synthetic_only','public_synthetic_only'):
+            if any(r['model']==family and r['setup']==setup for r in output):
+                continue
             if setup=='real_only':
                 chosen=0
                 synthetic=None
@@ -220,7 +236,10 @@ def finalize(results=None):
             training=development if setup=='real_only' else synthetic if setup in ('synthetic_only','public_synthetic_only') else pd.concat([development,synthetic],ignore_index=True)
             prediction,notes=fit_predict(training,test,family)
             row={'model':family,'setup':setup,'selected_round':chosen,'test':score(test.label,prediction),'warnings':notes,'leave_one_bank_out':{}}
+            row['leave_one_bank_out_warnings']={}
             for bank in sorted(real.bank.unique()):
+                if datetime.now(timezone.utc)>=DEADLINE:
+                    raise TimeoutError('Dubai deadline reached during final evaluation')
                 bank_test=real[real.bank==bank]
                 # LOBO is an independent fixed-generator experiment, not a test of the
                 # globally selected validation configuration (which has seen this bank).
@@ -231,6 +250,7 @@ def finalize(results=None):
                 bank_train=bank_train[~bank_train.get('template_group',pd.Series(index=bank_train.index,dtype=str)).isin(bank_test.template_group)]
                 pred,warn=fit_predict(bank_train,bank_test,family)
                 row['leave_one_bank_out'][bank]=score(bank_test.label,pred)
+                row['leave_one_bank_out_warnings'][bank]=warn
             output.append(row)
             (LOCAL/'final_progress.json').write_text(json.dumps(output,indent=2),encoding='utf-8')
     (LOCAL/'final_results.json').write_text(json.dumps(output,indent=2),encoding='utf-8')

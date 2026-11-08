@@ -1,0 +1,352 @@
+[
+  {
+    "id": "wikidata_license",
+    "title": "Wikidata structured data licensing",
+    "url": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+    "license": "CC0-1.0",
+    "allowed_use": "structured_facts_training",
+    "notes": "Structured entity facts only; surrounding wiki prose is not CC0.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "adcb",
+    "title": "ADCB SMS alerts",
+    "url": "https://www.adcb.com/en/ways-to-bank/sms-banking/sms-alerts.aspx",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "No page wording copied into generator.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "adcb_faq",
+    "title": "ADCB SMS FAQ",
+    "url": "https://www.adcb.com/en/get-in-touch/faqs/services/adcb-sms-banking",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Service description only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "liv",
+    "title": "Liv support",
+    "url": "https://www.liv.me/en/ways-of-banking/get-support",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "SMS/app transition; no template extraction.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "enbd",
+    "title": "Emirates NBD glossary",
+    "url": "https://finwell.emiratesnbd.com/-/media/enbd/files/pdf/our-glossary.pdf",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Alert types only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "enbd_supplementary",
+    "title": "Emirates NBD card activation",
+    "url": "https://www.emiratesnbd.com/en/help-and-support/activate-your-credit-or-debit-card",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Supplementary alert balance behavior.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "mashreq",
+    "title": "Mashreq UAE security",
+    "url": "https://www.mashreq.com/uae/neo/security/online-security/",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "No use of Egypt templates as UAE evidence.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "fab",
+    "title": "FAB debit card",
+    "url": "https://www.bankfab.com/en-ae/private/fab-world-elite-debit-card",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Purchase and withdrawal notification support.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "fab_security",
+    "title": "FAB security",
+    "url": "https://www.bankfab.com/en-ae/about-fab/security-and-certifications/online-and-offline-security",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Alert coverage only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "dib",
+    "title": "DIB banking agreement",
+    "url": "https://www.dib.ae/docs/default-source/terms-conditions/terms-conditions-banking-services-agreement-english.pdf?sfvrsn=95cf1f50_6",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "No authenticated wording established.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "ei",
+    "title": "Emirates Islamic SMS banking",
+    "url": "https://www.emiratesislamic.ae/en/ways-to-bank/sms-banking",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Published examples excluded from training.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "adib",
+    "title": "ADIB SMS banking",
+    "url": "https://www.adib.ae/en/personal/services/sms-banking",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Language commands and types only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "rakbank",
+    "title": "RAKBANK SMS alerts",
+    "url": "https://www.rakbank.ae/en/cards/card-safety/sms-alerts",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Coverage description only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "cbd",
+    "title": "CBD transaction alerts",
+    "url": "https://www.cbd.ae/personal/more/cbd-rewards/transaction-alerts",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Channel threshold; exact boundary unverified.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "hsbc",
+    "title": "HSBC push notifications",
+    "url": "https://www.hsbc.ae/help/push-notifications/",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Channel differences only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "hsbc_balance",
+    "title": "HSBC balance guide",
+    "url": "https://www.hsbc.ae/current-accounts/how-to-check-your-bank-balance/",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Fields only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "nbk_uae",
+    "title": "NBK UAE SMS",
+    "url": "https://www.nbk.com/fallback/ar/uae/services-and-support/sms-service-and-mobile-banking.html",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Arabic page; exact alert wording unverified.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "snb",
+    "title": "SNB e-services terms",
+    "url": "https://www.alahli.com/en/pages/personal-banking/digital-banking/e-services-usage-terms-and-conditions",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Not an SMS corpus.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "alrajhi",
+    "title": "Al Rajhi 2023 report",
+    "url": "https://www.alrajhibank.com.sa/-/media/Project/AlRajhi/ARBRevamp/Investor-Relation/Annual-Reports/Annual-Report-EN-2023.pdf",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Broad communication evidence only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "qnb",
+    "title": "QNB Qatar SMS",
+    "url": "https://qnb.com/sites/qnb/qnbqatar/page/en/ensmsbanking.html",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Qatar-specific service description.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "nbk_kw",
+    "title": "NBK Kuwait messaging",
+    "url": "https://www.nbk.com/ar/kuwait/services-and-support/messaging-service.html",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Language/types only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "nbk_bh",
+    "title": "NBK Bahrain SMS",
+    "url": "https://www.nbk.com/bahrain/services-and-support/sms-service.html",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Types only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "muscat",
+    "title": "Bank Muscat terms",
+    "url": "https://www.bankmuscat.com/en/about/Documents/bmforms/IND_TC_EN.pdf",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "SMS alert acknowledgment only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "fab_oman",
+    "title": "FAB Oman debit card",
+    "url": "https://www.bankfab.com/en-om/personal/debit-cards/visa-classic-debit-card",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Card alerts only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "rta",
+    "title": "RTA nol fares",
+    "url": "https://rta.ae/wps/portal/rta/ae/public-transport/Nol-Fares",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Numeric tariff facts; no prose training.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "dewa",
+    "title": "DEWA slab tariff",
+    "url": "https://www.dewa.gov.ae/en/consumer/billing/slab-tariff?bck=1",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Does not establish household bill distribution.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "carrefour",
+    "title": "Carrefour rice prices",
+    "url": "https://www.carrefouruae.com/mafuae/en//c/F1701240",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Time-sensitive numeric price anchors only.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "vox",
+    "title": "VOX offers",
+    "url": "https://uae.voxcinemas.com/ticket-offer/summary",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "Offer-specific; not typical-ticket distribution.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "starbucks",
+    "title": "Starbucks products",
+    "url": "https://www.starbucks.ae/en/espresso-drinks",
+    "license": "not_verified",
+    "allowed_use": "reference_only",
+    "notes": "No supported price range inferred.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "kaggle",
+    "title": "Bank Transactions SMS datasetss",
+    "url": "https://www.kaggle.com/datasets/engreemali/bank-transactions-sms-datasetss",
+    "license": "Unknown",
+    "allowed_use": "supplied_private_evaluation_only",
+    "notes": "Kaggle API licenseName Unknown; never train or redistribute.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "sme_paper",
+    "title": "SME categorisation with synthetic data",
+    "url": "https://arxiv.org/abs/2508.05425",
+    "license": "not_verified",
+    "allowed_use": "citation_only",
+    "notes": "Reported accuracy is not directly comparable to SMS macro-F1.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "finance_survey",
+    "title": "Synthetic Data Applications in Finance",
+    "url": "https://arxiv.org/abs/2401.00081",
+    "license": "not_verified",
+    "allowed_use": "citation_only",
+    "notes": "No training text/data copied.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "aml",
+    "title": "Realistic synthetic AML transactions",
+    "url": "https://arxiv.org/abs/2306.16424",
+    "license": "not_verified",
+    "allowed_use": "citation_only",
+    "notes": "Different task.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "distilmbert",
+    "title": "Multilingual DistilBERT",
+    "url": "https://huggingface.co/distilbert/distilbert-base-multilingual-cased",
+    "license": "Apache-2.0",
+    "allowed_use": "pretrained_model",
+    "notes": "Revision 45c032ab32cc946ad88a166f7cb282f58c753c2e; downstream private checkpoints never committed.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  },
+  {
+    "id": "minilm",
+    "title": "Multilingual MiniLM ONNX",
+    "url": "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "license": "Apache-2.0",
+    "allowed_use": "pretrained_model",
+    "notes": "Revision e8f8c211226b894fcb81acc59f3b34ba3efd5f42; license verified through public model metadata API. Frozen quint8 AVX2 encoder; private features stay local.",
+    "accessed": "2026-11-08",
+    "retrieval": "public_web_research"
+  }
+]

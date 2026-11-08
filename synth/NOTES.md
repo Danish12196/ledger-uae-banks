@@ -9,6 +9,11 @@
 - NON_TXN is a separate filtering task; ATM, salary, transfers and declined transactions are not forced into spending categories.
 - Strict masked-template groups, including removal of merchant identity, remain disjoint across train/validation/test. This produces uneven bank representation; report that rather than relaxing grouping to inflate scores.
 - Kaggle API metadata reports its license as Unknown. Supplied ADIB records are used only for private evaluation, not training or template mining. No external SMS dataset is downloaded for training.
+- The newer 12-category workbook has zero nonempty row overrides. Merchant labels can be used without reconstructing historical transaction IDs.
+- Classical iterations stopped after round 4: rounds 3 and 4 both improved by less than 0.005 compared with their preceding round. The best augmented validation setup was round 2. No generator edits follow final-test evaluation.
+- Windows host committed-memory pressure caused allocation failures in large classical fits and PyTorch/CUDA loading, despite free GPU memory. Classical fits now run in isolated processes. A lower-memory SAGA retry preserves the char-SMS logistic objective and C when LBFGS allocation fails. The initial LOBO implementation did not preserve per-bank convergence-warning metadata; future fits record it.
+- Full DistilBERT fine-tuning was attempted but did not complete. The successful resource-bounded alternative uses a pinned Apache-2.0 multilingual MiniLM quantized ONNX encoder on CPU, with frozen features and a trained logistic classifier. This is not full transformer fine-tuning or a GPU benchmark.
+- The public amount draws are nominal local-currency engineering priors followed by illustrative fixed conversions; the AED-equivalent foreign tail can exceed the nominal range. No historical FX accuracy is claimed.
 
 ## Open questions
 
