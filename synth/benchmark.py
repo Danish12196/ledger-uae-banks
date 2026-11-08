@@ -1,5 +1,6 @@
 """Benchmark iteration on validation only, then one final frozen real-test evaluation."""
 import argparse
+import gc
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -11,6 +12,7 @@ import time
 import warnings
 os.environ.setdefault('OMP_NUM_THREADS','8')
 os.environ.setdefault('MKL_NUM_THREADS','8')
+os.environ['OPENBLAS_NUM_THREADS']='4'
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -41,7 +43,8 @@ def load_real():
 def features(frame, family):
     return add_features(frame) if family=='ledger' else frame.message.fillna('')
 
-def fit_predict(train, evaluation, family):
+def _fit_predict(train, evaluation, family):
+    gc.collect()
     # ADIB's dataset license is unresolved; prevent its use in training in every setup.
     train=train[train.bank.ne('ADIB')].copy()
     if train.label.nunique()<2:
@@ -53,7 +56,19 @@ def fit_predict(train, evaluation, family):
         model.fit(features(train,family),train.label)
         prediction=model.predict(features(evaluation,family))
     convergence=[type(item.message).__name__ for item in caught]
+    del model
+    gc.collect()
     return prediction, convergence
+
+def fit_predict(train, evaluation, family):
+    # Isolate each fit so Windows releases all vectorizer/optimizer allocations.
+    work=LOCAL/'worker'
+    work.mkdir(exist_ok=True)
+    train.to_pickle(work/'train.pkl')
+    evaluation.to_pickle(work/'evaluation.pkl')
+    subprocess.run([sys.executable,str(Path(__file__).resolve()),'--worker',family],cwd=ROOT,check=True)
+    response=json.loads((work/'response.json').read_text())
+    return np.asarray(response['prediction']),response['warnings']
 
 def score(truth,prediction):
     report=classification_report(truth,prediction,labels=CATS,output_dict=True,zero_division=0)
@@ -120,32 +135,44 @@ def run(rounds=3,commit=False,final=False):
     train=real[(real.partition=='train') & real.bank.ne('ADIB')]
     validation=real[real.partition=='validation']
     templates=mine_templates(train)
-    all_results=[]
-    base=[]
-    for family in ('ledger','char_sms'):
-        prediction,notes=fit_predict(train,validation,family)
-        item={'round':0,'model':family,'setup':'real_only','train_n':len(train),'metrics':score(validation.label,prediction),'warnings':notes,'errors':error_summary(validation,prediction)}
-        base.append(item)
-    all_results.extend(base)
-    append_round(0,0,base,f'Real train {len(train):,}; validation {len(validation):,}; frozen test {sum(real.partition=="test"):,}. Strict template groups; unresolved-license ADIB excluded from training. Labels are inherited merchant-level project annotations; historical row overrides are not reapplied.')
-    (LOCAL/'results.json').write_text(json.dumps(all_results,indent=2),encoding='utf-8')
-    if commit: commit_round(0)
+    if (LOCAL/'results.json').exists():
+        all_results=json.loads((LOCAL/'results.json').read_text(encoding='utf-8'))
+        base=[r for r in all_results if r['round']==0]
+    else:
+        all_results=[]
+        base=[]
+        for family in ('ledger','char_sms'):
+            prediction,notes=fit_predict(train,validation,family)
+            item={'round':0,'model':family,'setup':'real_only','train_n':len(train),'metrics':score(validation.label,prediction),'warnings':notes,'errors':error_summary(validation,prediction)}
+            base.append(item)
+        all_results.extend(base)
+        append_round(0,0,base,f'Real train {len(train):,}; validation {len(validation):,}; frozen test {sum(real.partition=="test"):,}. Strict template groups; unresolved-license ADIB excluded from training. Labels are inherited merchant-level project annotations; historical row overrides are not reapplied.')
+        (LOCAL/'results.json').write_text(json.dumps(all_results,indent=2),encoding='utf-8')
+        if commit: commit_round(0)
     weights=None
     best_scores=[]
     for number in range(1,rounds+1):
+        if any(r['round']==number for r in all_results):
+            chosen=max((r for r in all_results if r['round']==number and r['setup']=='real_plus_synthetic'),key=lambda x:x['metrics']['macro_f1'])
+            best_scores.append(chosen['metrics']['macro_f1'])
+            weights=json.loads((LOCAL/f'round_{number}_weights.json').read_text())
+            continue
         if datetime.now(timezone.utc)>=DEADLINE:
             break
         size=[20000,30000,40000,60000,80000,100000,150000,200000][number-1]
         generated=generate(size,seed=902+number,level=min(number,3),private_templates=templates if number>=2 else None,weights=weights)
         generated.to_json(LOCAL/f'round_{number}_synthetic.jsonl',orient='records',lines=True,force_ascii=False)
         synthetic=generated[generated.label.isin(CATS)]
-        result=[]
-        for baseline in base:
-            result.append(dict(baseline,round=number,cached=True))
+        progress=LOCAL/f'round_{number}_progress.json'
+        result=json.loads(progress.read_text()) if progress.exists() else [dict(baseline,round=number,cached=True) for baseline in base]
         for family in ('ledger','char_sms'):
             for setup,training in [('real_plus_synthetic',pd.concat([train,synthetic],ignore_index=True)),('synthetic_only',synthetic)]:
+                if any(item['model']==family and item['setup']==setup for item in result):
+                    continue
                 prediction,notes=fit_predict(training,validation,family)
                 result.append({'round':number,'model':family,'setup':setup,'train_n':int(sum(training.bank!='ADIB')),'metrics':score(validation.label,prediction),'warnings':notes,'errors':error_summary(validation,prediction)})
+                (LOCAL/f'round_{number}_progress.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+                print(f'Round {number}: {family}/{setup} complete',flush=True)
         all_results.extend(result)
         chosen=max((x for x in result if x['setup']=='real_plus_synthetic'),key=lambda x:x['metrics']['macro_f1'])
         # Class-level validation feedback only; never inspect real test merchant/template errors.
@@ -210,8 +237,14 @@ if __name__=='__main__':
     parser.add_argument('--commit-rounds',action='store_true')
     parser.add_argument('--final',action='store_true')
     parser.add_argument('--final-only',action='store_true')
+    parser.add_argument('--worker',choices=['ledger','char_sms'])
     args=parser.parse_args()
-    if args.final_only:
+    if args.worker:
+        train=pd.read_pickle(LOCAL/'worker/train.pkl')
+        evaluation=pd.read_pickle(LOCAL/'worker/evaluation.pkl')
+        prediction,notes=_fit_predict(train,evaluation,args.worker)
+        (LOCAL/'worker/response.json').write_text(json.dumps({'prediction':prediction.tolist(),'warnings':notes}))
+    elif args.final_only:
         finalize()
     else:
         run(args.rounds,args.commit_rounds,args.final)

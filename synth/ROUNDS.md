@@ -43,3 +43,18 @@ Synthetic rows generated: 30,000. Adds conservative train-only masked private fo
 
 Per-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.
 
+## Round 3
+
+Synthetic rows generated: 40,000. Adds truncated messages and updated validation-class reweighting.
+
+| Model | Training | Validation macro-F1 | Accuracy | Train rows |
+|---|---|---:|---:|---:|
+| ledger | real_only | 0.8932 | 0.9320 | 1954 |
+| char_sms | real_only | 0.7346 | 0.8533 | 1954 |
+| ledger | real_plus_synthetic | 0.8992 | 0.9410 | 33445 |
+| ledger | synthetic_only | 0.5915 | 0.6816 | 31491 |
+| char_sms | real_plus_synthetic | 0.6950 | 0.8283 | 33445 |
+| char_sms | synthetic_only | 0.4778 | 0.4794 | 31491 |
+
+Per-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.
+
