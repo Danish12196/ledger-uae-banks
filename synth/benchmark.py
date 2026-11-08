@@ -160,6 +160,10 @@ def run(rounds=3,commit=False,final=False):
         if datetime.now(timezone.utc)>=DEADLINE:
             break
         size=[20000,30000,40000,60000,80000,100000,150000,200000][number-1]
+        if len(best_scores)>=2 and best_scores[-1]-best_scores[-2]<0.005:
+            previous=pd.read_json(LOCAL/f'round_{number-1}_synthetic.jsonl',lines=True)
+            size=len(previous)
+            del previous
         generated=generate(size,seed=902+number,level=min(number,3),private_templates=templates if number>=2 else None,weights=weights)
         generated.to_json(LOCAL/f'round_{number}_synthetic.jsonl',orient='records',lines=True,force_ascii=False)
         synthetic=generated[generated.label.isin(CATS)]

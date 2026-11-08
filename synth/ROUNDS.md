@@ -58,3 +58,18 @@ Synthetic rows generated: 40,000. Adds truncated messages and updated validation
 
 Per-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.
 
+## Round 4
+
+Synthetic rows generated: 40,000. Adds truncated messages and updated validation-class reweighting.
+
+| Model | Training | Validation macro-F1 | Accuracy | Train rows |
+|---|---|---:|---:|---:|
+| ledger | real_only | 0.8932 | 0.9320 | 1954 |
+| char_sms | real_only | 0.7346 | 0.8533 | 1954 |
+| ledger | real_plus_synthetic | 0.8991 | 0.9428 | 33428 |
+| ledger | synthetic_only | 0.5607 | 0.6583 | 31474 |
+| char_sms | real_plus_synthetic | 0.7072 | 0.8265 | 33428 |
+| char_sms | synthetic_only | 0.4753 | 0.4902 | 31474 |
+
+Per-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.
+
