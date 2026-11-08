@@ -28,3 +28,18 @@ Synthetic rows generated: 20,000. Public authored formats; baseline descriptor v
 
 Per-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.
 
+## Round 2
+
+Synthetic rows generated: 30,000. Adds conservative train-only masked private formats, class reweighting, typos and odd spacing.
+
+| Model | Training | Validation macro-F1 | Accuracy | Train rows |
+|---|---|---:|---:|---:|
+| ledger | real_only | 0.8932 | 0.9320 | 1954 |
+| char_sms | real_only | 0.7346 | 0.8533 | 1954 |
+| ledger | real_plus_synthetic | 0.9163 | 0.9481 | 25539 |
+| ledger | synthetic_only | 0.5708 | 0.6655 | 23585 |
+| char_sms | real_plus_synthetic | 0.7048 | 0.8372 | 25539 |
+| char_sms | synthetic_only | 0.4411 | 0.4830 | 23585 |
+
+Per-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.
+

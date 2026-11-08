@@ -191,11 +191,13 @@ def finalize(results=None):
             row={'model':family,'setup':setup,'selected_round':chosen,'test':score(test.label,prediction),'warnings':notes,'leave_one_bank_out':{}}
             for bank in sorted(real.bank.unique()):
                 bank_test=real[real.bank==bank]
-                bank_train=training[training.bank!=bank]
-                # Remove private-format rows mined from held-out banks, because their provenance
-                # could otherwise transfer target-bank templates into a leave-bank-out run.
-                if 'template_provenance' in bank_train:
-                    bank_train=bank_train[bank_train.template_provenance.ne('private_derived') | bank_train.template_provenance.isna()]
+                # LOBO is an independent fixed-generator experiment, not a test of the
+                # globally selected validation configuration (which has seen this bank).
+                public=pd.read_csv(ROOT/'synth/out/synthetic_public.csv')
+                public=public[public.label.isin(CATS) & public.bank.ne(bank)]
+                other_real=real[(real.bank!=bank) & real.bank.ne('ADIB')]
+                bank_train=other_real if setup=='real_only' else public if setup in ('synthetic_only','public_synthetic_only') else pd.concat([other_real,public],ignore_index=True)
+                bank_train=bank_train[~bank_train.get('template_group',pd.Series(index=bank_train.index,dtype=str)).isin(bank_test.template_group)]
                 pred,warn=fit_predict(bank_train,bank_test,family)
                 row['leave_one_bank_out'][bank]=score(bank_test.label,pred)
             output.append(row)
