@@ -3,8 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import requests
-ROOT=Path(__file__).resolve().parents[1]
-LOCAL=ROOT/'synth/local'
+from paths import ROOT, LOCAL
 
 if __name__=='__main__':
     meta=json.loads((LOCAL/'transformer_source.json').read_text())

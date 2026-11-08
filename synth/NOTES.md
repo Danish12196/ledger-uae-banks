@@ -3,7 +3,7 @@
 - Target stop: 2026-11-09 07:00 Asia/Dubai (03:00 UTC). Stop earlier if the stopping criterion is met.
 - User authorized pushing `synth-dataset`; never merge or change main.
 - A separate validation partition drives iteration. Frozen real test partitions are opened only for final reporting.
-- All private-derived tables, templates, model weights, detailed errors and split membership live in ignored `synth/local/`.
+- All private inputs and derived tables/templates/model weights/errors/split membership now live in local app storage outside the repository. `python synth/paths.py` shows that location. Initial work copies were placed in ignored workspace directories before recognizing that the workspace was inside OneDrive; they were subsequently moved out. OneDrive's prior synchronization state was not inspected, so this project does not claim those copies could never have synced.
 - Existing 12-category `merchant_labels.xlsx` was found in the newer project bundle and copied into ignored storage. The older 10-category file was rejected. No new rule predictions are inferred as gold.
 - Public availability alone is insufficient permission for training. Unknown-rights sources are reference-only. Independently authored formats are explicitly marked illustrative, not verified bank wording.
 - NON_TXN is a separate filtering task; ATM, salary, transfers and declined transactions are not forced into spending categories.

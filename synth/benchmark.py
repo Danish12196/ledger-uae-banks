@@ -21,8 +21,7 @@ from sklearn.metrics import confusion_matrix, f1_score, classification_report
 from sklearn.pipeline import Pipeline
 from threadpoolctl import threadpool_limits
 
-ROOT=Path(__file__).resolve().parents[1]
-LOCAL=ROOT/'synth/local'
+from paths import ROOT, LOCAL
 sys.path.insert(0,str(ROOT))
 sys.path.insert(0,str(ROOT/'synth'))
 from scripts.categoriser_lib import add_features, tfidf_logreg
@@ -60,10 +59,12 @@ def _fit_predict(train, evaluation, family):
             if family!='char_sms':
                 raise
             # Same multinomial logistic objective/C/weights, lower-memory optimizer.
+            fallback=True
+        if fallback:
+            # Leave the exception handler first so traceback references release arrays.
             gc.collect()
             model.set_params(classifier__solver='saga',classifier__random_state=902)
             model.fit(features(train,family),train.label)
-            fallback=True
         prediction=model.predict(features(evaluation,family))
     convergence=[type(item.message).__name__ for item in caught]
     if fallback: convergence.append('MemoryFallback_SAGA_same_logistic_objective')
@@ -139,7 +140,7 @@ def append_round(number,rows,results,notes):
         out.write('| Model | Training | Validation macro-F1 | Accuracy | Train rows |\n|---|---|---:|---:|---:|\n')
         for item in results:
             out.write(f"| {item['model']} | {item['setup']} | {item['metrics']['macro_f1']:.4f} | {item['metrics']['accuracy']:.4f} | {item['train_n']} |\n")
-        out.write('\nPer-class scores, confusion matrices, class-pair errors and split membership are in ignored `synth/local/`.\n\n')
+        out.write('\nDetailed metrics, masked errors and split membership are in external local private working storage (`python synth/paths.py`).\n\n')
 
 def run(rounds=3,commit=False,final=False):
     real=load_real()

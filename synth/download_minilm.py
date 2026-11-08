@@ -3,8 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import requests
-ROOT=Path(__file__).resolve().parents[1]
-LOCAL=ROOT/'synth/local'
+from paths import ROOT, LOCAL
 MODEL='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
 REVISION='e8f8c211226b894fcb81acc59f3b34ba3efd5f42'
 if __name__=='__main__':

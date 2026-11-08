@@ -12,6 +12,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import train_test_split
 from threadpoolctl import threadpool_limits
 ROOT=Path(__file__).resolve().parents[1]
+from paths import LOCAL
 sys.path.insert(0,str(ROOT/'synth'))
 from generate import generate
 
@@ -23,12 +24,12 @@ def run():
     with threadpool_limits(limits=4):
         model.fit(train.message,train.event_label)
         output={'synthetic_holdout':classification_report(test.event_label,model.predict(test.message),output_dict=True,zero_division=0)}
-        real=pd.read_json(ROOT/'synth/local/all_messages.jsonl',lines=True).drop_duplicates('exact_hash')
+        real=pd.read_json(LOCAL/'all_messages.jsonl',lines=True).drop_duplicates('exact_hash')
         real['event_label']=real.txn_type.map({'otp':'NON_TXN','purchase':'EXPENSE','bill_payment':'EXPENSE','refund':'TXN_OTHER','cash_withdrawal':'TXN_OTHER','income':'TXN_OTHER','transfer_in':'TXN_OTHER','transfer_out':'TXN_OTHER','declined':'TXN_OTHER'})
         real=real[real.event_label.notna()]
         output['real_silver_diagnostic']=classification_report(real.event_label,model.predict(real.message),output_dict=True,zero_division=0)
     output['warning']='Real event labels are inherited from the existing parser and are not independently annotated. This is a silver-label diagnostic, not a gold benchmark or evidence of production filtering accuracy.'
-    (ROOT/'synth/local/filter_results.json').write_text(json.dumps(output,indent=2))
+    (LOCAL/'filter_results.json').write_text(json.dumps(output,indent=2))
     print('Separate filter diagnostic saved; real labels explicitly marked silver.')
 
 if __name__=='__main__':

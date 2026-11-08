@@ -16,7 +16,7 @@ Spending labels use the 12 existing categories. `NON_TXN` and `TXN_OTHER` are se
 
 ## Private benchmark: one command
 
-Place the seven authorized redacted SMS exports and the **12-category** `merchant_labels.xlsx` in ignored `data/private/`. The older 10-category workbook is rejected. Then run:
+Run `python synth/paths.py` and place the seven authorized exports plus the **12-category** `merchant_labels.xlsx` in the displayed private input directory (local app storage, outside the OneDrive workspace). The older 10-category workbook is rejected. Then run:
 
 ```powershell
 python synth/run.py --rounds 8
@@ -24,7 +24,7 @@ python synth/run.py --rounds 8
 
 This prepares a frozen group split if none exists, runs/resumes validation rounds, produces the final held-out test and leave-one-bank-out comparisons, writes aggregate reports, and audits the privacy boundaries. Existing frozen files are never silently regenerated. Changed inputs require a new explicitly named experiment directory/version rather than replacing an evaluation split. The default deadline is 7 am Dubai time on 9 November 2026; use `--deadline` for a later independent experiment.
 
-The full benchmark requires local private inputs and is not reproducible from public data alone. Source hashes and private split membership remain in `synth/local/frozen.json`; dependency versions and seeds are recorded. Personal raw messages are never printed. Every script reading private messages writes only to ignored storage, except safe aggregate metrics/report summaries.
+The full benchmark requires local private inputs and is not reproducible from public data alone. Source hashes and private split membership remain in `frozen.json` under local private working storage; dependency versions and seeds are recorded. Raw messages are never printed. Every script reading private messages writes outside the source workspace, except safe aggregate summaries. `LEDGER_RUN_DIR` selects a new external working directory and `LEDGER_PRIVATE_DIR` can select another authorized local input folder. Frozen experiments are never overwritten silently.
 
 The existing notebook's parser/merchant-cleaning declarations are loaded without executing its data-loading, display or export cells. The shared `scripts/categoriser_lib.py` model is reused unchanged: character/word TF-IDF and log-amount with balanced logistic regression. The additional baseline uses full-SMS character 2–5-gram TF-IDF and balanced logistic regression. They measure different interfaces; the Ledger model receives parsed merchant text while the SMS baseline receives the whole alert.
 
@@ -40,13 +40,12 @@ Each selected classical setup is refitted on train+validation before the single 
 
 All per-class scores and confusion matrices are stored locally and exported only as aggregate summaries. Merchant/template diagnostics remain local. `synth/ROUNDS.md` records each completed round, and `synth/REPORT.md` describes the final comparison. No score should be compared directly with the README's earlier random-fold experiment.
 
-## Optional GPU baseline
+## Optional multilingual baseline
 
-`synth/transformer.py` fine-tunes multilingual DistilBERT locally. It pins the Apache-2.0 checkpoint, caps synthetic training at 12,000 expenses, uses two epochs, maximum length 96, batch size 16 and seed 902. Round 2/3 real-only, augmented and synthetic-only checkpoints are compared on validation. Downloads contain only public model weights; no private SMS is sent to Hugging Face. Disable telemetry and keep learned checkpoints in ignored `synth/local/transformer_models/`.
+Full DistilBERT fine-tuning was attempted but failed under Windows host-memory/CUDA allocation pressure. `synth/transformer.py` preserves that optional experiment implementation; it has no completed metrics. The working resource-bounded alternative is a frozen, quantized multilingual MiniLM L12 v2 ONNX encoder on CPU with a trained logistic classifier. Its Apache-2.0 checkpoint is pinned, synthetic training is capped at 12,000 expenses, and messages are truncated to 96 tokens. Round 2/3 configurations are selected on validation. This is a pretrained transformer baseline, not full fine-tuning. Downloads contain only public model files; no private SMS is uploaded. Features and classifiers remain local.
 
 ```powershell
-synth/local/venv/Scripts/python.exe synth/transformer.py
-synth/local/venv/Scripts/python.exe synth/transformer.py --final
+python synth/run.py --rounds 8 --encoder
 ```
 
 Model/environment failures are documented, never replaced with invented metrics. GPU scores and training budgets must be distinguished from full-corpus classical fits. The transformer is optional for reproducibility on a CPU-only machine.
@@ -62,4 +61,4 @@ python synth/audit.py
 
 Refreshing research changes the public dataset version. Keep a dated source snapshot for a paper. The audit verifies frozen hashes, disjoint groups, public provenance, generation determinism, no exact real SMS in the public CSV/new commit lines/cells, ignored private paths and branch authorship. It cannot prove absence of every private substring; explicit output provenance remains the primary protection.
 
-`--private-templates` is accepted only for paths in `synth/local/` and forces generated outputs into that same ignored directory. Never publish those outputs. Keep the checked-in synthetic CSV's provenance independent of private data.
+`--private-templates` is accepted only for paths in the local private working directory and forces generated outputs into that directory. Never publish those outputs. Keep the checked-in synthetic CSV's provenance independent of private data. Legacy `data/private/`, `synth/local/` and private-output patterns remain ignored as a further Git safeguard; current scripts do not use the synced workspace for private working files.

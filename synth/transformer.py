@@ -21,8 +21,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from transformers.utils import logging
 logging.set_verbosity_error()
 
-ROOT=Path(__file__).resolve().parents[1]
-LOCAL=ROOT/'synth/local'
+from paths import ROOT, LOCAL
 sys.path.insert(0,str(ROOT/'synth'))
 from benchmark import load_real, score, DEADLINE
 from scripts.rules import CATS

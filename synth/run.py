@@ -22,6 +22,7 @@ if __name__=='__main__':
     if args.commit_rounds: flags.append('--commit-rounds')
     execute('benchmark.py',*flags)
     execute('benchmark.py','--final-only')
+    execute('analyze_errors.py')
     execute('filter_benchmark.py')
     if args.encoder:
         execute('download_minilm.py')

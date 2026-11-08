@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
+from paths import LOCAL
 sys.path.insert(0,str(ROOT/'synth'))
 
 def git(*args):
@@ -23,11 +24,16 @@ def audit():
     checks['all_12_test_classes']=real[real.partition=='test'].label.nunique()==12
     checks['frozen_row_ids_unique']=real.row_id.is_unique
     checks['private_paths_ignored']=subprocess.run(['git','check-ignore','data/private/merchant_labels.xlsx','synth/local/frozen.json','synth/out/private_test.csv'],cwd=ROOT,capture_output=True).returncode==0
+    checks['working_storage_outside_source_workspace']=ROOT not in LOCAL.parents and ROOT!=LOCAL
+    checks['no_private_work_folder_in_sync_workspace']=not (ROOT/'synth/local').exists()
     checks['deterministic_generator']=generate(100,seed=42).equals(generate(100,seed=42))
     public=pd.read_csv(ROOT/'synth/out/synthetic_public.csv')
     checks['public_provenance']=bool(public.public_eligible.all() and public.template_provenance.eq('independently_authored_illustrative').all())
-    checks['public_no_real_messages']=not set(public.message)&set(pd.read_json(ROOT/'synth/local/all_messages.jsonl',lines=True).message)
+    checks['public_no_real_messages']=not set(public.message)&set(pd.read_json(LOCAL/'all_messages.jsonl',lines=True).message)
     checks['every_public_row_traceable']=bool(public[['template_id','merchant','bank','generator_version','source']].notna().all().all())
+    denied_target=ROOT/'synth/out/private_guard_probe.csv'
+    probe=subprocess.run([sys.executable,str(ROOT/'synth/generate.py'),'--rows','1','--private-templates',str(LOCAL/'private_templates.json'),'--output',str(denied_target)],cwd=ROOT,capture_output=True,text=True)
+    checks['private_template_public_export_denied']=probe.returncode!=0 and not denied_target.exists()
     base=git('merge-base','HEAD','origin/main').strip()
     added=git('diff','--name-only',base,'HEAD').splitlines()
     checks['no_committed_private_paths']=not any(p.startswith(('data/','synth/local/','private/','models/','outputs/','synth/out/private')) or p.endswith(('.xlsx','.pkl','.joblib','.pt','.safetensors')) for p in added)
@@ -38,7 +44,7 @@ def audit():
     checks['separate_branch']=git('branch','--show-current').strip()=='synth-dataset'
     # Scan every newly introduced text blob across every branch commit for full real SMS.
     # Start with long line/cell hashes; public CSV message cells receive a separate exact check.
-    raw=pd.read_json(ROOT/'synth/local/all_messages.jsonl',lines=True)
+    raw=pd.read_json(LOCAL/'all_messages.jsonl',lines=True)
     real_hashes={hashlib.sha256(m.strip().encode()).hexdigest() for m in raw.message if isinstance(m,str) and len(m.strip())>=25}
     matched=0
     for commit in git('rev-list',f'{base}..HEAD').splitlines():
@@ -55,7 +61,7 @@ def audit():
     checks['no_real_message_lines_or_cells_in_new_history']=matched==0
     output={'checks':checks,'all_passed':all(checks.values()),'new_commits':len(authors),'real_message_matches':matched,
             'limits':'Checks cover new branch history, exact full message lines/cells and explicit provenance. Not a proof against every possible personal-data substring or semantic disclosure.'}
-    (ROOT/'synth/local/audit.json').write_text(json.dumps(output,indent=2),encoding='utf-8')
+    (LOCAL/'audit.json').write_text(json.dumps(output,indent=2),encoding='utf-8')
     print(json.dumps(output,indent=2))
     if not output['all_passed']:
         raise SystemExit(1)

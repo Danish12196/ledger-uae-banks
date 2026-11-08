@@ -10,8 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupShuffleSplit
 
-ROOT = Path(__file__).resolve().parents[1]
-LOCAL = ROOT / 'synth/local'
+from paths import ROOT, LOCAL, PRIVATE
 sys.path.insert(0, str(ROOT))
 from scripts.rules import CATS
 
@@ -52,12 +51,12 @@ def run():
     env = notebook_helpers()
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        labels = pd.read_excel(ROOT / 'data/private/merchant_labels.xlsx', sheet_name='Merchants')
+        labels = pd.read_excel(PRIVATE / 'merchant_labels.xlsx', sheet_name='Merchants')
     if not set(labels.final_category.dropna()).issubset(CATS):
         raise ValueError('Gold label workbook must use the 12-class scheme; no automatic remapping.')
     label_map = dict(zip(labels.merchant, labels.final_category))
     rows = []
-    for source in sorted((ROOT / 'data/private').glob('*.xlsx')):
+    for source in sorted(PRIVATE.glob('*.xlsx')):
         if source.name == 'merchant_labels.xlsx':
             continue
         name = source.name.lower()
@@ -109,7 +108,7 @@ def run():
     full.to_json(LOCAL / 'all_messages.jsonl', orient='records', lines=True, force_ascii=False)
     labelled.to_json(LOCAL / 'real.jsonl', orient='records', lines=True, force_ascii=False)
     manifest = {'seed':902, 'split_method':'strict_masked_template_group_holdout',
-                'input_hashes': {p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (ROOT/'data/private').glob('*.xlsx')},
+                'input_hashes': {p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in PRIVATE.glob('*.xlsx')},
                 'members':dict(zip(labelled.row_id,labelled.partition)),
                 'table_hash':hashlib.sha256((LOCAL/'real.jsonl').read_bytes()).hexdigest()}
     (LOCAL/'frozen.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')

@@ -18,8 +18,7 @@ import onnxruntime as ort
 from tokenizers import Tokenizer
 from sklearn.linear_model import LogisticRegression
 from threadpoolctl import threadpool_limits
-ROOT=Path(__file__).resolve().parents[1]
-LOCAL=ROOT/'synth/local'
+from paths import ROOT, LOCAL
 sys.path.insert(0,str(ROOT/'synth'))
 from benchmark import load_real, score, DEADLINE
 from scripts.rules import CATS

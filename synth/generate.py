@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
+from paths import LOCAL
 sys.path.insert(0, str(ROOT))
 from scripts.rules import CATS
 
@@ -59,8 +60,8 @@ def generate(count=20000, seed=902, level=1, private_templates=None, weights=Non
     private_ids = set()
     if private_templates:
         path = Path(private_templates).resolve()
-        if ROOT.joinpath('synth/local').resolve() not in path.parents:
-            raise ValueError('Private template path must be under ignored synth/local')
+        if LOCAL not in path.parents:
+            raise ValueError('Private template path must be in local private working storage')
         for item in json.loads(path.read_text(encoding='utf-8')):
             templates.append(tuple(item))
             private_ids.add(item[0])
@@ -113,10 +114,10 @@ def main():
     parser.add_argument('--private-templates')
     args=parser.parse_args()
     target=(ROOT/args.output).resolve()
-    if ROOT not in target.parents:
-        raise ValueError('Output must be inside project')
-    if args.private_templates and ROOT.joinpath('synth/local').resolve() not in target.parents:
-        raise ValueError('Private-derived output must remain in synth/local')
+    if ROOT not in target.parents and LOCAL not in target.parents:
+        raise ValueError('Output must be inside the project or private working storage')
+    if args.private_templates and LOCAL not in target.parents:
+        raise ValueError('Private-derived output must remain in local private working storage')
     frame=generate(args.rows,args.seed,args.level,args.private_templates)
     target.parent.mkdir(parents=True,exist_ok=True)
     frame.to_csv(target,index=False)
