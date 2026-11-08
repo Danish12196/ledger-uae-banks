@@ -14,3 +14,12 @@ site/dashboard/*.json
 __pycache__/
 .ipynb_checkpoints/
 .vercel
+
+# Synthetic benchmark: all private-derived artifacts stay local
+data/private/
+synth/out/private*
+synth/local/
+synth/**/*.log
+!synth/gazetteer/merchants.csv
+!synth/out/synthetic_public.csv
+
